@@ -7,7 +7,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return NextResponse.json({ id: params.id, ...body });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
     .update({ ...body, updated_at: new Date().toISOString() })
@@ -24,7 +24,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return NextResponse.json({ ok: true });
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("courses")
     .delete()

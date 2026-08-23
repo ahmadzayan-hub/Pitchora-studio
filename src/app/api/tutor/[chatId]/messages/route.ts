@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ chatId: s
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return NextResponse.json([]);
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("tutor_messages").select("*").eq("chat_id", params.chatId).eq("user_id", user.id).order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ chatId: 
   }
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Save user message
   await supabase.from("tutor_messages").insert({ chat_id: params.chatId, user_id: user.id, role: "user", content });

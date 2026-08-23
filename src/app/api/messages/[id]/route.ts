@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   if (isDemoMode) return NextResponse.json({ id: params.id, ...body });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("messages")
     .update(body)

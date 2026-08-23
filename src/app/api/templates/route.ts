@@ -16,7 +16,7 @@ const Body = z.object({
 export const GET = safeRoute(async (req: NextRequest) => {
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("templates")
     .select("*")
@@ -33,7 +33,7 @@ export const POST = safeRoute(async (req: NextRequest) => {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_body", issues: parsed.error.flatten() }, { status: 400 });
   }
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("templates")
     .insert({

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try { body = schema.parse(await req.json()); } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: body.email,
     password: body.password,

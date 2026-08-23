@@ -9,7 +9,7 @@ export const GET = safeRoute(async (req: NextRequest, { params }: { params: Prom
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
 
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("sessions")
     .select("*, questions(*), prompt_versions(*)")
@@ -36,7 +36,7 @@ export const DELETE = safeRoute(async (req: NextRequest, { params }: { params: P
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
 
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { error } = await supabase
     .from("sessions")
     .delete()

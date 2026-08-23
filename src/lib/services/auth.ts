@@ -8,7 +8,7 @@ export interface AuthContext {
 }
 
 export async function requireUserOrg(orgIdHeader: string | null): Promise<AuthContext | NextResponse> {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });

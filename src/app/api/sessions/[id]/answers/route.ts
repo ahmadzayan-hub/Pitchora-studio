@@ -25,7 +25,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: Pro
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_body", issues: parsed.error.flatten() }, { status: 400 });
   }
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
 
   // Verify session belongs to org
   const { data: session } = await supabase

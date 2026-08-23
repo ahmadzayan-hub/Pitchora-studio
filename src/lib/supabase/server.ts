@@ -1,10 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies, type UnsafeUnwrappedCookies } from "next/headers";
+import { cookies } from "next/headers";
 import { env, assertSupabaseEnv } from "@/lib/env";
 
-export function getServerSupabase() {
+export async function getServerSupabase() {
   assertSupabaseEnv();
-  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
+  // Next 15: cookies() is async.
+  const cookieStore = await cookies();
   return createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       get(name: string) {

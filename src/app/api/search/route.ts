@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [cRes, dRes, gRes, pRes, fRes] = await Promise.all([
     supabase.from("courses").select("id,name,code").eq("user_id", user.id).ilike("name", `%${q}%`).limit(3),

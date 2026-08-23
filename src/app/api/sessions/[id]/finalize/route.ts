@@ -17,7 +17,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: Pro
   if (auth instanceof NextResponse) return auth;
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
 
   try {
     const { data: session, error } = await supabase

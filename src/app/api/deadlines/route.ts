@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const demo = demoDeadlines(view); if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   let q = supabase.from("deadlines").select("*, courses(name)").eq("user_id", user.id).eq("is_done", false).order("due_date");
   if (view === "today") q = q.lte("due_date", new Date(Date.now() + 86400000).toISOString());
   else if (view === "week") q = q.lte("due_date", new Date(Date.now() + 7 * 86400000).toISOString());
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: `dl-${Date.now()}`, user_id: "demo-user", risk: "safe", is_done: false, ...body, created_at: new Date().toISOString() }, { status: 201 });
   }
   const body = await req.json();
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("deadlines").insert({ ...body, user_id: user.id }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });

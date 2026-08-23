@@ -18,7 +18,7 @@ export const GET = safeRoute(async (req: NextRequest, { params }: { params: Prom
   const { id } = await params;
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("templates")
     .select("*")
@@ -38,7 +38,7 @@ export const PATCH = safeRoute(async (req: NextRequest, { params }: { params: Pr
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_body", issues: parsed.error.flatten() }, { status: 400 });
   }
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const patch: Record<string, unknown> = { ...parsed.data };
   if (patch.body !== undefined) patch.body = normalizeTemplateBody(patch.body);
   const { data, error } = await supabase
@@ -57,7 +57,7 @@ export const DELETE = safeRoute(async (req: NextRequest, { params }: { params: P
   const { id } = await params;
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { error } = await supabase
     .from("templates")
     .delete()
