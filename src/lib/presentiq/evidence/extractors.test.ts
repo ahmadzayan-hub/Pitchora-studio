@@ -110,3 +110,45 @@ describe("spreadsheet extraction", () => {
     expect(text).toBe("");
   });
 });
+
+describe("numbers survive extraction intact", () => {
+  async function numbersFrom(rows: (string | number)[][]) {
+    const buf = await workbook((wb) => {
+      const s = wb.addWorksheet("N");
+      for (const r of rows) s.addRow(r);
+    });
+    const { numbers } = await extract(buf);
+    return (numbers ?? []).map((n) => n.value);
+  }
+
+  it("reads an unformatted number whole", async () => {
+    // The bug this guards: alternation is leftmost-first, so a branch that
+    // could match one-to-three digits won and 12400000 became 124.
+    expect(await numbersFrom([["Contract value", 12400000]])).toContain(12400000);
+  });
+
+  it("still reads a number written with thousands separators", async () => {
+    const buf = await workbook((wb) => {
+      wb.addWorksheet("N").getCell("A1").value = "Total AED 12,400,000 inclusive";
+    });
+    const { numbers } = await extract(buf);
+    expect(numbers?.map((n) => n.value)).toContain(12400000);
+  });
+
+  it("keeps a negative negative and whole", async () => {
+    expect(await numbersFrom([["Variance", -5000]])).toContain(-5000);
+  });
+
+  it("keeps decimals", async () => {
+    expect(await numbersFrom([["Rate", 12.5]])).toContain(12.5);
+  });
+
+  it("still attaches a unit when one follows the number", async () => {
+    const buf = await workbook((wb) => {
+      wb.addWorksheet("N").getCell("A1").value = "Track renewal 42km at 18%";
+    });
+    const { numbers } = await extract(buf);
+    expect(numbers?.find((n) => n.value === 42)?.unit).toBe("km");
+    expect(numbers?.find((n) => n.value === 18)?.unit).toBe("%");
+  });
+});
