@@ -8,7 +8,7 @@ export async function GET() {
   const demo = demoReturn("weekly-brief"); if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data } = await supabase.from("weekly_briefs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single();
   return NextResponse.json(data);
 }
@@ -17,7 +17,7 @@ export async function POST() {
   const demo = demoReturn("weekly-brief", 201); if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [courses, deadlines, announcements, grades, tasks] = await Promise.all([
     supabase.from("courses").select("name, progress, status").eq("user_id", user.id),

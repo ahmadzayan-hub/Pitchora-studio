@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? 50);
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("announcements").select("*, courses(name)").eq("user_id", user.id).eq("is_archived", false).order("created_at", { ascending: false }).limit(limit);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data?.map((a: any) => ({ ...a, course_name: (a.courses as any)?.name ?? "" })) ?? []);
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     return NextResponse.json({ id: `ann-${Date.now()}`, user_id: "demo-user", source: "manual", summary: "Demo announcement added.", required_action: "", risk_level: "low", is_archived: false, ...body, created_at: new Date().toISOString() }, { status: 201 });
   }
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let { title, content, course_id, source } = body;
   let summary = "", required_action = "", risk_level = "low";

@@ -5,7 +5,8 @@ import { fail, json, notFound, unauthorized } from "@/lib/presentiq/api/response
  * Runs Template Intelligence on the brand kit's uploaded template (.pptx)
  * and writes design_tokens + layout_library back to the row.
  */
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const supabase = await getSupabase();

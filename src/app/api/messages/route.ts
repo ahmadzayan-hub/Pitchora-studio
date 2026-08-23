@@ -8,7 +8,7 @@ export async function GET() {
   if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("messages")
     .select("*")
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       ai_reply_suggestion_ar: null,
     }, { status: 201 });
   }
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("messages")
     .insert({ ...body, from_id: user.id })

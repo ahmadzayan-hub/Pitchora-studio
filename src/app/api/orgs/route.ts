@@ -9,7 +9,7 @@ const Body = z.object({
 });
 
 export const GET = safeRoute(async () => {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
@@ -22,7 +22,7 @@ export const GET = safeRoute(async () => {
 });
 
 export const POST = safeRoute(async (req: NextRequest) => {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 

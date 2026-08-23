@@ -14,7 +14,7 @@ const CreateSchema = z.object({
 export async function GET() {
   const ctx = await getRequestContext();
   if (isDemoContext(ctx)) {
-    return json({ items: listDemoBrandKits(ctx.orgId) });
+    return json({ items: await listDemoBrandKits(ctx.orgId) });
   }
   const supabase = await getSupabase();
   const { data } = await supabase
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return failValidation("Please check the highlighted fields.", parsed.error.issues);
 
   if (isDemoContext(ctx)) {
-    const kit = createDemoBrandKit({
+    const kit = await createDemoBrandKit({
       organization_id: ctx.orgId,
       name: parsed.data.name,
       is_default: parsed.data.is_default ?? false,

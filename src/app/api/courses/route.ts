@@ -6,7 +6,7 @@ export async function GET() {
   const demo = demoReturn("courses"); if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
     .select("*")
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: `course-${Date.now()}`, user_id: "demo-user", ...body, created_at: new Date().toISOString() }, { status: 201 });
   }
   const body = await req.json();
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
     .insert({ ...body, user_id: user.id })

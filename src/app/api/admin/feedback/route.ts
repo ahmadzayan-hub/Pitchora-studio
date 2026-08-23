@@ -25,7 +25,7 @@ interface FeedbackRow {
  * render charts. Pagination can be added later if volume warrants it.
  */
 export const GET = safeRoute(async (_req: NextRequest) => {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 

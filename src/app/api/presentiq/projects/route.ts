@@ -6,7 +6,7 @@ import { createProject as createDemoProject, listProjects as listDemoProjects } 
 export async function GET() {
   const ctx = await getRequestContext();
   if (isDemoContext(ctx)) {
-    return json({ items: listDemoProjects(ctx.orgId) });
+    return json({ items: await listDemoProjects(ctx.orgId) });
   }
   const supabase = await getSupabase();
   const { data } = await supabase
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return failValidation("Please check the highlighted fields.", parsed.error.issues);
 
   if (isDemoContext(ctx)) {
-    const project = createDemoProject({
+    const project = await createDemoProject({
       organization_id: ctx.orgId,
       owner_id: ctx.userId,
       brand_kit_id: parsed.data.brand_kit_id ?? null,

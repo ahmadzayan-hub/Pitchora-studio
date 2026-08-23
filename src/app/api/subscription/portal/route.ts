@@ -5,7 +5,7 @@ import { getStripe } from "@/lib/stripe/client";
 export async function POST() {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: sub } = await supabase.from("subscriptions").select("stripe_customer_id").eq("user_id", user.id).single();
   if (!sub?.stripe_customer_id) return NextResponse.json({ error: "No billing account" }, { status: 404 });
 

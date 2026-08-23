@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const parsed = Schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return failValidation("Please check the highlighted fields.", parsed.error.issues);
 
-  const row = recordFeedback({
+  const row = await recordFeedback({
     email: parsed.data.email,
     subject: parsed.data.subject,
     message: parsed.data.message,

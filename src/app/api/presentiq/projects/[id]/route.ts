@@ -3,10 +3,11 @@ import { fail, json, notFound } from "@/lib/presentiq/api/response";
 import { getProject as getDemoProject, updateProject as updateDemoProject, deleteProject as deleteDemoProject } from "@/lib/presentiq/demo/store";
 import { buildDemoBlueprint, buildDemoSlides } from "@/lib/presentiq/demo/blueprint";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (isDemoContext(ctx)) {
-    const demo = getDemoProject(params.id);
+    const demo = await getDemoProject(params.id);
     if (!demo) return notFound("project");
     // Slides are deterministic functions of the brief — regenerate on demand
     // when the in-memory cache is empty (different lambda from the one that
@@ -51,7 +52,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   const patch = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const allowed = [
@@ -64,7 +66,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!Object.keys(filtered).length) return fail("invalid_input", "no changes", 400);
 
   if (isDemoContext(ctx)) {
-    const updated = updateDemoProject(params.id, filtered as any);
+    const updated = await updateDemoProject(params.id, filtered as any);
     if (!updated) return notFound("project");
     return json({ project: updated });
   }
@@ -85,11 +87,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return json({ project: data });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!["owner", "admin"].includes(ctx.role)) return fail("forbidden", "owner/admin only", 403);
   if (isDemoContext(ctx)) {
-    const ok = deleteDemoProject(params.id);
+    const ok = await deleteDemoProject(params.id);
     return ok ? json({ ok: true }) : notFound("project");
   }
   const supabase = await getSupabase();

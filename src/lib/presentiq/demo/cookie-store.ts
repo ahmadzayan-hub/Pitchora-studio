@@ -56,9 +56,9 @@ function decode<T = unknown>(raw: string): T | null {
   }
 }
 
-function readCookie<T = any>(name: string): Record<string, T> {
+async function readCookie<T = any>(name: string): Promise<Record<string, T>> {
   try {
-    const raw = cookies().get(name)?.value;
+    const raw = (await cookies()).get(name)?.value;
     if (!raw) return {};
     const parsed = decode<Record<string, T>>(raw);
     return (parsed && typeof parsed === "object") ? parsed : {};
@@ -67,9 +67,9 @@ function readCookie<T = any>(name: string): Record<string, T> {
   }
 }
 
-function writeCookie(name: string, value: Record<string, unknown>) {
+async function writeCookie(name: string, value: Record<string, unknown>) {
   try {
-    cookies().set(name, encode(value), {
+    (await cookies()).set(name, encode(value), {
       path: "/",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30,
@@ -85,9 +85,9 @@ function writeCookie(name: string, value: Record<string, unknown>) {
 // got dropped (size cap, third-party-cookie blocked browser, etc.).
 const HEADER_PROJECT = "x-pq-demo-project";
 
-function readHeaderProject(): SlimProject | null {
+async function readHeaderProject(): Promise<SlimProject | null> {
   try {
-    const raw = headers().get(HEADER_PROJECT);
+    const raw = (await headers()).get(HEADER_PROJECT);
     if (!raw) return null;
     return decode<SlimProject>(raw);
   } catch {
@@ -97,11 +97,11 @@ function readHeaderProject(): SlimProject | null {
 
 // ─── Projects ─────────────────────────────────────────────────────────
 
-export function readCookieProjects(): Record<string, SlimProject> {
-  return readCookie<SlimProject>(COOKIE_PROJECTS);
+export async function readCookieProjects(): Promise<Record<string, SlimProject>> {
+  return await readCookie<SlimProject>(COOKIE_PROJECTS);
 }
 
-export function writeCookieProjects(projects: Record<string, DemoProject | SlimProject>) {
+export async function writeCookieProjects(projects: Record<string, DemoProject | SlimProject>) {
   const ids = Object.keys(projects).sort((a, b) =>
     String(projects[b]?.updated_at ?? "").localeCompare(String(projects[a]?.updated_at ?? ""))
   );
@@ -115,39 +115,39 @@ export function writeCookieProjects(projects: Record<string, DemoProject | SlimP
     delete kept[oldest];
     json = JSON.stringify(kept);
   }
-  writeCookie(COOKIE_PROJECTS, kept);
+  await writeCookie(COOKIE_PROJECTS, kept);
 }
 
-export function upsertCookieProject(p: DemoProject) {
-  const all = readCookieProjects();
+export async function upsertCookieProject(p: DemoProject) {
+  const all = await readCookieProjects();
   all[p.id] = slimProject(p);
-  writeCookieProjects(all);
+  await writeCookieProjects(all);
 }
 
-export function getCookieProject(id: string): SlimProject | null {
-  const all = readCookieProjects();
+export async function getCookieProject(id: string): Promise<SlimProject | null> {
+  const all = await readCookieProjects();
   if (all[id]) return all[id];
   // Header fallback — wizard pins its project on every request.
-  const header = readHeaderProject();
+  const header = await readHeaderProject();
   if (header && header.id === id) return header;
   return null;
 }
 
-export function deleteCookieProject(id: string) {
-  const all = readCookieProjects();
+export async function deleteCookieProject(id: string) {
+  const all = await readCookieProjects();
   if (!(id in all)) return false;
   delete all[id];
-  writeCookieProjects(all);
+  await writeCookieProjects(all);
   return true;
 }
 
 // ─── Brand kits ───────────────────────────────────────────────────────
 
-export function readCookieBrandKits(): Record<string, DemoBrandKit> {
-  return readCookie<DemoBrandKit>(COOKIE_KITS);
+export async function readCookieBrandKits(): Promise<Record<string, DemoBrandKit>> {
+  return await readCookie<DemoBrandKit>(COOKIE_KITS);
 }
 
-export function writeCookieBrandKits(kits: Record<string, DemoBrandKit>) {
+export async function writeCookieBrandKits(kits: Record<string, DemoBrandKit>) {
   const ids = Object.keys(kits).sort((a, b) =>
     String(kits[b]?.created_at ?? "").localeCompare(String(kits[a]?.created_at ?? ""))
   );
@@ -161,16 +161,16 @@ export function writeCookieBrandKits(kits: Record<string, DemoBrandKit>) {
     delete kept[oldest];
     json = JSON.stringify(kept);
   }
-  writeCookie(COOKIE_KITS, kept);
+  await writeCookie(COOKIE_KITS, kept);
 }
 
-export function upsertCookieBrandKit(k: DemoBrandKit) {
-  const all = readCookieBrandKits();
+export async function upsertCookieBrandKit(k: DemoBrandKit) {
+  const all = await readCookieBrandKits();
   all[k.id] = k;
-  writeCookieBrandKits(all);
+  await writeCookieBrandKits(all);
 }
 
-export function getCookieBrandKit(id: string): DemoBrandKit | null {
-  const all = readCookieBrandKits();
+export async function getCookieBrandKit(id: string): Promise<DemoBrandKit | null> {
+  const all = await readCookieBrandKits();
   return all[id] ?? null;
 }

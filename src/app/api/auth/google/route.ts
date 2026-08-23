@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.redirect(`${appUrl}/dashboard`);
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: `${appUrl}/api/auth/callback` },

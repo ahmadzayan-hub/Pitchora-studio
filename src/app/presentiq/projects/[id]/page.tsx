@@ -9,7 +9,7 @@ import { Badge } from "@/components/presentiq/ui/Badge";
 export const dynamic = "force-dynamic";
 
 async function fetchProject(id: string) {
-  const h = headers();
+  const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";
   const cookie = h.get("cookie") ?? "";
@@ -28,9 +28,8 @@ async function fetchProject(id: string) {
  * Next.js flush 200 first — Google would then keep indexing the
  * "project not found" URL as a live page.
  */
-export async function generateMetadata(
-  { params }: { params: { id: string } },
-): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const data = await fetchProject(params.id);
   if (!data) notFound();
   return {
@@ -39,7 +38,8 @@ export async function generateMetadata(
   };
 }
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const data = await fetchProject(params.id);
   // notFound() throws so Next.js returns HTTP 404 and renders the
   // nearest not-found.tsx boundary. Previously we returned a bare

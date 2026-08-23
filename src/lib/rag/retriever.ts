@@ -22,7 +22,7 @@ export async function retrieveChunks(
   topK = 8
 ): Promise<RetrievedChunk[]> {
   const embedding = await getEmbedding(query);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("match_chunks", {
     query_embedding: embedding,

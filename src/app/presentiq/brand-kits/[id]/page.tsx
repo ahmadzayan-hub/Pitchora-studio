@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { BrandKitEditor } from "./BrandKitEditor";
 
 async function fetchKit(id: string) {
-  const h = headers();
+  const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";
   const cookie = h.get("cookie") ?? "";
@@ -11,7 +11,8 @@ async function fetchKit(id: string) {
   return res.json();
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const data = await fetchKit(params.id);
   if (!data?.brand_kit) return <div className="text-sm text-zinc-500">Brand kit not found.</div>;
   return <BrandKitEditor kit={data.brand_kit} />;

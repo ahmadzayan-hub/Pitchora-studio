@@ -9,12 +9,13 @@ import { fail, json, notFound, unauthorized } from "@/lib/presentiq/api/response
 import { getProject as getDemoProject } from "@/lib/presentiq/demo/store";
 import { buildDemoBlueprint, buildDemoEvidence, buildDemoSlides } from "@/lib/presentiq/demo/blueprint";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
 
   if (isDemoContext(ctx)) {
-    const demo = getDemoProject(params.id);
+    const demo = await getDemoProject(params.id);
     if (!demo) return notFound("project");
     const blueprint = demo.blueprint ?? buildDemoBlueprint(demo);
     const slides = demo.slides && demo.slides.length

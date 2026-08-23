@@ -1,7 +1,8 @@
 import { getRequestContext, getSupabase, writeAudit, isDemoContext } from "@/lib/presentiq";
 import { fail, json, unauthorized } from "@/lib/presentiq/api/response";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   if (isDemoContext(ctx)) return json({ items: [] });
@@ -14,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return json({ items: data ?? [] });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, _props: { params: Promise<{ id: string }> }) {
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const body = (await req.json().catch(() => ({}))) as { slide_id?: string; body?: string };

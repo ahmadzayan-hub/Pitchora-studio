@@ -16,7 +16,8 @@ import { getTemplate } from "@/lib/presentiq/templates/registry";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   const body = (await req.json().catch(() => ({}))) as { template_code?: string };
 
@@ -24,7 +25,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // If a template code came in, use that template's curated outline so the
   // user sees the structure they picked, not the generic 14-slide demo.
   if (isDemoContext(ctx)) {
-    const demoProject = getDemoProject(params.id);
+    const demoProject = await getDemoProject(params.id);
     if (!demoProject) return notFound("project");
     const tpl = body.template_code ? getTemplate(body.template_code) : undefined;
     let blueprint;
@@ -45,7 +46,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     } else {
       blueprint = buildDemoBlueprint(demoProject);
     }
-    updateDemoProject(params.id, { status: "blueprint_ready", blueprint });
+    await updateDemoProject(params.id, { status: "blueprint_ready", blueprint });
     return json({ blueprint });
   }
 

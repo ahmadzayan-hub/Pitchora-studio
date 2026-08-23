@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ answer });
   }
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Gather academic context
   const [courses, deadlines, announcements, grades] = await Promise.all([

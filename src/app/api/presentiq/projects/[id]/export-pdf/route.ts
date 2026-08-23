@@ -16,7 +16,8 @@ export const maxDuration = 240;
  * a clear "PDF unavailable on this plan" message. Server-side conversion can be
  * delegated to a managed worker for production.
  */
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const supabase = await getSupabase();

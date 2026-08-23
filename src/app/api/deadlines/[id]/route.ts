@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/db/supabase-server";
 import { demoReturn } from "@/lib/demo";
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     const body = await req.json();
     return NextResponse.json({ id: params.id, ...body });

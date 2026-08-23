@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   if (!planConfig) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
 
   const stripe = getStripe();
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: sub } = await supabase.from("subscriptions").select("stripe_customer_id").eq("user_id", user.id).single();
 
   const session = await stripe.checkout.sessions.create({

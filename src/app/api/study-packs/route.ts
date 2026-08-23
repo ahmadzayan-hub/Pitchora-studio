@@ -7,7 +7,7 @@ export async function GET() {
   const demo = demoReturn("study-packs"); if (demo) return demo;
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("study_packs").select("*, courses(name), private_files(name)").eq("user_id", user.id).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     return NextResponse.json({ id: `pack-${Date.now()}`, user_id: "demo-user", file_id, course_id, title: title || "New Study Pack", status: "generating", generating: true, created_at: new Date().toISOString() }, { status: 201 });
   }
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Check AI quota
   const { data: sub } = await supabase.from("subscriptions").select("ai_queries_used, ai_queries_limit").eq("user_id", user.id).single();

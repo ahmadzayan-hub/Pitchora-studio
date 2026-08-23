@@ -20,9 +20,10 @@ function makeNullClient() {
   } as any;
 }
 
-export function createClient() {
+export async function createClient() {
   if (isMissingSupabase()) return makeNullClient();
-  const cookieStore = cookies();
+  // Next 15: cookies() is async.
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -52,7 +53,7 @@ export function createServiceClient() {
 export async function getUser() {
   if (isDemoMode) return DEMO_USER as any;
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   } catch {
@@ -65,14 +66,14 @@ export async function requireUser() {
     return { user: DEMO_USER as any, supabase: makeNullClient(), unauthorized: null };
   }
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       return { user: null, supabase, unauthorized: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
     }
     return { user, supabase, unauthorized: null };
   } catch {
-    const supabase = createClient();
+    const supabase = await createClient();
     return { user: null, supabase, unauthorized: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 }

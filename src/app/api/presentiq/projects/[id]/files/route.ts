@@ -4,7 +4,8 @@ import { fail, json, notFound } from "@/lib/presentiq/api/response";
 
 const MAX = 50 * 1024 * 1024; // 50 MB
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (isDemoContext(ctx)) return json({ items: [] });
   const supabase = await getSupabase();
@@ -17,7 +18,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return json({ items: data ?? [] });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
 
   // Demo path — accept files but skip persistence; return their metadata.

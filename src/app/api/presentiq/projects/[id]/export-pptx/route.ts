@@ -17,13 +17,14 @@ function safeFilename(s: string): string {
   return (s || "presentation").replace(/[^\w؀-ۿ\-]+/g, "_").slice(0, 80);
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
 
   // Demo path — render PPTX in-memory and stream the binary directly.
   if (isDemoContext(ctx)) {
-    const project = getDemoProject(params.id);
+    const project = await getDemoProject(params.id);
     if (!project) return notFound("project");
     const blueprint = project.blueprint ?? buildDemoBlueprint(project);
     const slides =
@@ -34,7 +35,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             language_mode: project.language_mode,
             blueprint,
           });
-    const kit = project.brand_kit_id ? getDemoBrandKit(project.brand_kit_id) : null;
+    const kit = project.brand_kit_id ? await getDemoBrandKit(project.brand_kit_id) : null;
     const brandCtx = loadBrandContext(kit as any, project.presentation_mode as any, project.language_mode);
     let buf: Buffer;
     try {

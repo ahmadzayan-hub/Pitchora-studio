@@ -25,7 +25,7 @@ export const POST = safeRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: "invalid_body", issues: parsed.error.flatten() }, { status: 400 });
   }
   const { raw_prompt, target_model = "generic", template_id, quick = false } = parsed.data;
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
 
   try {
     const intent = await detectIntent(raw_prompt);
@@ -112,7 +112,7 @@ export const GET = safeRoute(async (req: NextRequest) => {
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
 
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("sessions")
     .select("id, raw_prompt, intent, status, target_model, created_at, updated_at")

@@ -1,7 +1,8 @@
 import { getRequestContext, getSupabase, writeAudit } from "@/lib/presentiq";
 import { fail, json, notFound, unauthorized } from "@/lib/presentiq/api/response";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const supabase = await getSupabase();
@@ -15,7 +16,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return json({ brand_kit: data });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   if (!["owner", "admin", "editor"].includes(ctx.role)) return fail("forbidden", "insufficient role", 403);
@@ -46,7 +48,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return json({ brand_kit: data });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   if (!["owner", "admin"].includes(ctx.role)) return fail("forbidden", "owner/admin only", 403);

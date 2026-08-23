@@ -3,17 +3,19 @@ import { createClient, getUser } from "@/lib/db/supabase-server";
 import { aiChat } from "@/lib/ai/client";
 import { retrieveChunks, buildContext, extractCitations } from "@/lib/rag/retriever";
 
-export async function GET(req: NextRequest, { params }: { params: { chatId: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ chatId: string }> }) {
+  const params = await props.params;
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return NextResponse.json([]);
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("tutor_messages").select("*").eq("chat_id", params.chatId).eq("user_id", user.id).order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { chatId: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ chatId: string }> }) {
+  const params = await props.params;
   const { content, course_id } = await req.json();
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     const reply = `Great question! Based on your uploaded course materials, here's what I found:\n\n**Key insight**: ${content.length > 30 ? "Your question relates to a core MBA concept covered in your study packs." : "This concept is foundational to your MBA program."}\n\nFor a deeper dive, I recommend opening the relevant Study Pack — your Porter's Five Forces and DCF Valuation packs have comprehensive coverage of related frameworks.\n\n*Note: This is a demo response. Connect a real AI provider in settings to get live, context-aware tutoring from your actual uploaded files.*`;
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: { chatId: str
   }
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Save user message
   await supabase.from("tutor_messages").insert({ chat_id: params.chatId, user_id: user.id, role: "user", content });

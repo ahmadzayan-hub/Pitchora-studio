@@ -47,7 +47,7 @@ async function loadFactory() {
 
 export async function getSupabase() {
   const factory = await loadFactory();
-  const jar = cookies();
+  const jar = await cookies();
   return factory(jar);
 }
 

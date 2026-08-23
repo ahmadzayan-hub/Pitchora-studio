@@ -10,18 +10,20 @@ const Body = z.object({
   target_model: z.enum(["chatgpt", "claude", "copilot", "gemini", "generic"]).optional()
 });
 
-export const POST = safeRoute(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const POST = safeRoute(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  // Next 15: route params arrive as a promise.
+  const { id } = await params;
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
 
   try {
     const { data: session, error } = await supabase
       .from("sessions")
       .select("*, questions(*), template:template_id(*)")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("org_id", auth.orgId)
       .maybeSingle();
     if (error || !session) {
@@ -31,7 +33,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
     const { data: answers } = await supabase
       .from("answers")
       .select("question_id, answer")
-      .eq("session_id", params.id)
+      .eq("session_id", id)
       .eq("org_id", auth.orgId);
 
     const qa: Array<{ question: string; answer: string }> = [];
@@ -59,7 +61,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
     const { data: existing } = await supabase
       .from("prompt_versions")
       .select("version")
-      .eq("session_id", params.id)
+      .eq("session_id", id)
       .order("version", { ascending: false })
       .limit(1);
     const nextVersion = (existing?.[0]?.version ?? 0) + 1;
@@ -67,7 +69,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
     const { data: version, error: insErr } = await supabase
       .from("prompt_versions")
       .insert({
-        session_id: params.id,
+        session_id: id,
         org_id: auth.orgId,
         version: nextVersion,
         target_model: targetModel,
@@ -81,7 +83,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
     await supabase
       .from("sessions")
       .update({ status: "finalized", target_model: targetModel })
-      .eq("id", params.id);
+      .eq("id", id);
 
     return NextResponse.json({ version });
   } catch (e) {
