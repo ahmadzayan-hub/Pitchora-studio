@@ -121,8 +121,8 @@ const DEMO_USER = "demo-user-pq";
 // lambda boundaries) then fall back to the in-memory Map (which holds
 // the seeded demo project for the dashboard tour).
 
-export function listProjects(orgId: string) {
-  const cookieMap = readCookieProjects();
+export async function listProjects(orgId: string) {
+  const cookieMap = await readCookieProjects();
   const merged = new Map<string, DemoProject>();
   for (const p of projects.values()) merged.set(p.id, p);
   for (const id of Object.keys(cookieMap)) {
@@ -134,8 +134,8 @@ export function listProjects(orgId: string) {
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
-export function getProject(id: string) {
-  const fromCookie = getCookieProject(id);
+export async function getProject(id: string) {
+  const fromCookie = await getCookieProject(id);
   if (fromCookie) {
     // Hydrate any in-flight blueprint/slides from the in-memory map if present
     const inMem = projects.get(id);
@@ -144,27 +144,27 @@ export function getProject(id: string) {
   return projects.get(id) ?? null;
 }
 
-export function createProject(input: Omit<DemoProject, "id" | "created_at" | "updated_at" | "status">) {
+export async function createProject(input: Omit<DemoProject, "id" | "created_at" | "updated_at" | "status">) {
   const id = randomUUID();
   const now = new Date().toISOString();
   const row: DemoProject = { ...input, id, status: "draft", created_at: now, updated_at: now };
   projects.set(id, row);
-  upsertCookieProject(row);
+  await upsertCookieProject(row);
   return row;
 }
 
-export function updateProject(id: string, patch: Partial<DemoProject>) {
-  const existing = projects.get(id) ?? (getCookieProject(id) as DemoProject | null);
+export async function updateProject(id: string, patch: Partial<DemoProject>) {
+  const existing = projects.get(id) ?? (await getCookieProject(id) as DemoProject | null);
   if (!existing) return null;
   const next: DemoProject = { ...existing, ...patch, updated_at: new Date().toISOString() };
   projects.set(id, next);
-  upsertCookieProject(next);
+  await upsertCookieProject(next);
   return next;
 }
 
-export function deleteProject(id: string) {
+export async function deleteProject(id: string) {
   const inMem = projects.delete(id);
-  const inCookie = deleteCookieProject(id);
+  const inCookie = await deleteCookieProject(id);
   return inMem || inCookie;
 }
 
@@ -172,8 +172,8 @@ export function deleteProject(id: string) {
 // Cookie-backed (same rationale as projects: each Vercel route runs in
 // its own lambda so module-level state isn't shared).
 
-export function listBrandKits(orgId: string) {
-  const cookieMap = readCookieBrandKits();
+export async function listBrandKits(orgId: string) {
+  const cookieMap = await readCookieBrandKits();
   const merged = new Map<string, DemoBrandKit>();
   for (const k of brandKits.values()) merged.set(k.id, k);
   for (const id of Object.keys(cookieMap)) merged.set(id, cookieMap[id]);
@@ -182,11 +182,11 @@ export function listBrandKits(orgId: string) {
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
-export function getBrandKit(id: string) {
-  return getCookieBrandKit(id) ?? brandKits.get(id) ?? null;
+export async function getBrandKit(id: string) {
+  return await getCookieBrandKit(id) ?? brandKits.get(id) ?? null;
 }
 
-export function createBrandKit(input: Omit<DemoBrandKit, "id" | "created_at">) {
+export async function createBrandKit(input: Omit<DemoBrandKit, "id" | "created_at">) {
   const id = randomUUID();
   const row: DemoBrandKit = { ...input, id, created_at: new Date().toISOString() };
   if (input.is_default) {
@@ -197,19 +197,19 @@ export function createBrandKit(input: Omit<DemoBrandKit, "id" | "created_at">) {
     }
   }
   brandKits.set(id, row);
-  upsertCookieBrandKit(row);
+  await upsertCookieBrandKit(row);
   return row;
 }
 
 // ─── Feedback ──────────────────────────────────────────────────────
 
-export function recordFeedback(input: Omit<DemoFeedback, "id" | "created_at">) {
+export async function recordFeedback(input: Omit<DemoFeedback, "id" | "created_at">) {
   const row: DemoFeedback = { ...input, id: randomUUID(), created_at: new Date().toISOString() };
   feedback.push(row);
   return row;
 }
 
-export function listFeedback() {
+export async function listFeedback() {
   return feedback.slice();
 }
 

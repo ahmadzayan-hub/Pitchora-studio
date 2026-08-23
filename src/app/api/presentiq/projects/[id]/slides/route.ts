@@ -15,12 +15,13 @@ import { buildDemoBlueprint, buildDemoSlides } from "@/lib/presentiq/demo/bluepr
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
 
   // Demo path — synthesise slides without calling Anthropic.
   if (isDemoContext(ctx)) {
-    const demoProject = getDemoProject(params.id);
+    const demoProject = await getDemoProject(params.id);
     if (!demoProject) return notFound("project");
     const blueprint = demoProject.blueprint ?? buildDemoBlueprint(demoProject);
     const slides = buildDemoSlides({
@@ -28,7 +29,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       language_mode: demoProject.language_mode,
       blueprint,
     });
-    updateDemoProject(params.id, { status: "ready", blueprint, slides });
+    await updateDemoProject(params.id, { status: "ready", blueprint, slides });
     return json({
       deck_version: { id: "demo-v1", version_number: 1, readiness_score: 0.84 },
       slides,

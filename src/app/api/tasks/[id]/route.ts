@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/db/supabase-server";
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     const body = await req.json();
     return NextResponse.json({ id: params.id, ...body });
@@ -23,7 +24,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(data);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return new NextResponse(null, { status: 204 });
   const { user, supabase, unauthorized } = await requireUser();
   if (unauthorized) return unauthorized;

@@ -10,7 +10,8 @@ import { fail, json, notFound, unauthorized } from "@/lib/presentiq/api/response
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const body = (await req.json().catch(() => ({}))) as { target?: "en" | "ar" };

@@ -14,7 +14,8 @@ import { buildDemoBlueprint, buildDemoSlides } from "@/lib/presentiq/demo/bluepr
 export const runtime = "nodejs";
 export const maxDuration = 90;
 
-export async function POST(req: Request, { params }: { params: { id: string; slideId: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string; slideId: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const body = (await req.json().catch(() => ({}))) as { instruction?: string };
@@ -22,7 +23,7 @@ export async function POST(req: Request, { params }: { params: { id: string; sli
 
   // Demo path — apply a deterministic, instruction-aware tweak.
   if (isDemoContext(ctx)) {
-    const demo = getDemoProject(params.id);
+    const demo = await getDemoProject(params.id);
     if (!demo) return notFound("project");
     const blueprint = demo.blueprint ?? buildDemoBlueprint(demo);
     const slides = demo.slides && demo.slides.length

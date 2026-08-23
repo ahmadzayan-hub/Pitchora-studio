@@ -8,7 +8,7 @@ const supabaseKey =
 
 interface CookieEntry { name: string; value: string; options?: CookieOptions }
 
-export const createClient = (cookieStore: Awaited<ReturnType<typeof cookies>>) => {
+export const createClient = (cookieStore: Awaited<Awaited<ReturnType<typeof cookies>>>) => {
   return createServerClient(supabaseUrl!, supabaseKey!, {
     cookies: {
       getAll() {

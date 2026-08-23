@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { cookies, type UnsafeUnwrappedCookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isDemoMode, DEMO_USER } from "@/lib/demo";
 
@@ -22,7 +22,7 @@ function makeNullClient() {
 
 export function createClient() {
   if (isMissingSupabase()) return makeNullClient();
-  const cookieStore = cookies();
+  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

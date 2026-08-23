@@ -3,7 +3,8 @@ import { createClient, getUser } from "@/lib/db/supabase-server";
 import { aiChat } from "@/lib/ai/client";
 import { retrieveChunks, buildContext, extractCitations } from "@/lib/rag/retriever";
 
-export async function GET(req: NextRequest, { params }: { params: { chatId: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ chatId: string }> }) {
+  const params = await props.params;
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return NextResponse.json([]);
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,7 +14,8 @@ export async function GET(req: NextRequest, { params }: { params: { chatId: stri
   return NextResponse.json(data);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { chatId: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ chatId: string }> }) {
+  const params = await props.params;
   const { content, course_id } = await req.json();
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
     const reply = `Great question! Based on your uploaded course materials, here's what I found:\n\n**Key insight**: ${content.length > 30 ? "Your question relates to a core MBA concept covered in your study packs." : "This concept is foundational to your MBA program."}\n\nFor a deeper dive, I recommend opening the relevant Study Pack — your Porter's Five Forces and DCF Valuation packs have comprehensive coverage of related frameworks.\n\n*Note: This is a demo response. Connect a real AI provider in settings to get live, context-aware tutoring from your actual uploaded files.*`;

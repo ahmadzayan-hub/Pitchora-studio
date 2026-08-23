@@ -15,7 +15,9 @@ const Body = z.object({
     .min(1)
 });
 
-export const POST = safeRoute(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const POST = safeRoute(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  // Next 15: route params arrive as a promise.
+  const { id } = await params;
   const auth = await requireUserOrg(req.headers.get("x-org-id"));
   if (auth instanceof NextResponse) return auth;
 
@@ -29,14 +31,14 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
   const { data: session } = await supabase
     .from("sessions")
     .select("id")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("org_id", auth.orgId)
     .maybeSingle();
   if (!session) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const rows = parsed.data.answers.map((a) => ({
     question_id: a.question_id,
-    session_id: params.id,
+    session_id: id,
     org_id: auth.orgId,
     answer: a.answer
   }));
@@ -45,7 +47,7 @@ export const POST = safeRoute(async (req: NextRequest, { params }: { params: { i
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // mark session ready
-  await supabase.from("sessions").update({ status: "ready" }).eq("id", params.id);
+  await supabase.from("sessions").update({ status: "ready" }).eq("id", id);
 
   return NextResponse.json({ ok: true, count: rows.length });
 });
