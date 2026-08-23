@@ -15,7 +15,7 @@ to a single production project, plus the standing config the branch
 ## Naming
 
 - **Product name:** Pitchora (Pitch + Aurora)
-- **Repo:** `github.com/ahmadzayan-hub/desktop-tutorial`
+- **Repo:** `github.com/ahmadzayan-hub/Pitchora-studio-Private`
 - **Canonical branch:** `pitchora`
 - **Vercel project name:** `pitchora`
 - **Production domain:** `www.pitchora.ai` (add via Vercel → Domains)
@@ -69,7 +69,7 @@ Rename the survivor to **`pitchora`**:
 Set the Git integration:
 
   Settings → Git →
-    Repository: `ahmadzayan-hub/desktop-tutorial`
+    Repository: `ahmadzayan-hub/Pitchora-studio-Private`
     Production Branch: `pitchora`
     Ignored Build Step: leave blank (the branch-name filter below is
                         enough)
