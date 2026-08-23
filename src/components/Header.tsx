@@ -6,6 +6,7 @@ import Logo from "@/components/Logo";
 import Wordmark from "@/components/Wordmark";
 import ThemeToggle from "@/components/ThemeToggle";
 import ShareApp from "@/components/ShareApp";
+import Link from "next/link";
 
 export default function Header() {
   const { t, locale, setLocale } = useI18n();
@@ -15,10 +16,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 backdrop-blur bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-        <a href="/" className="flex items-center gap-2 sm:gap-3 min-w-0" aria-label={t("app.name")}>
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0" aria-label={t("app.name")}>
           <Logo className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0" />
           <Wordmark />
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1 text-sm">
