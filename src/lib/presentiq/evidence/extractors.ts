@@ -110,15 +110,59 @@ async function tryPptx(buf: Buffer): Promise<string> {
   }
 }
 
+/**
+ * The text a reader would see in a cell.
+ *
+ * ExcelJS returns structured values where SheetJS returned display strings,
+ * so this has to unwrap them itself. The choices matter for evidence: a
+ * formula contributes its *result*, because that is the number on the page
+ * and the number a claim will cite -- not "=SUM(B2:B9)", which cites
+ * nothing. An error cell contributes its error text rather than being
+ * silently dropped, so a broken spreadsheet reads as broken.
+ */
+function cellText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "object") {
+    const v = value as Record<string, unknown>;
+    if ("result" in v) return cellText(v.result); // formula / shared formula
+    if ("richText" in v && Array.isArray(v.richText)) {
+      return v.richText.map((r) => String((r as { text?: unknown }).text ?? "")).join("");
+    }
+    if ("text" in v) return String(v.text ?? ""); // hyperlink
+    if ("error" in v) return String(v.error ?? "");
+    return "";
+  }
+  return String(value);
+}
+
+/** RFC 4180: quote only when the value would otherwise break the row. */
+function csvCell(text: string): string {
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
 async function tryXlsx(buf: Buffer): Promise<string> {
   try {
-    const xlsx = await import("xlsx");
-    const wb = xlsx.read(buf, { type: "buffer" });
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf as unknown as ArrayBuffer);
+
     const out: string[] = [];
-    for (const name of wb.SheetNames) {
-      const sheet = wb.Sheets[name];
-      out.push(`# ${name}\n${xlsx.utils.sheet_to_csv(sheet)}`);
-    }
+    wb.eachSheet((sheet) => {
+      const width = sheet.columnCount;
+      const rows: string[] = [];
+      // Index-based rather than eachRow/eachCell: those skip empties, which
+      // would shift columns and silently misalign a value from its header.
+      for (let r = 1; r <= sheet.rowCount; r += 1) {
+        const row = sheet.getRow(r);
+        const cells: string[] = [];
+        for (let c = 1; c <= width; c += 1) cells.push(csvCell(cellText(row.getCell(c).value)));
+        while (cells.length && cells[cells.length - 1] === "") cells.pop();
+        rows.push(cells.join(","));
+      }
+      while (rows.length && rows[rows.length - 1] === "") rows.pop();
+      out.push(`# ${sheet.name}\n${rows.join("\n")}`);
+    });
     return out.join("\n\n");
   } catch {
     return "";
