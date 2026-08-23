@@ -19,7 +19,13 @@ export type ExtractedDoc = {
   dates?: { iso: string; page?: number }[];
 };
 
-const NUMBER_RE = /(?<!\w)(-?\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(%|km|m|kg|usd|aed|sar|EGP|EUR|GBP)?/giu;
+// The grouped branch requires at least one separator group (`+`, not `*`).
+// With `*` it matched the first one-to-three digits of any plain number and
+// won, because alternation is leftmost-first rather than longest: 12400000
+// came out as 124, and -5000 as -500. Spreadsheet cells store raw numbers
+// without thousands separators, so every value above 999 was being truncated
+// to its first three digits before anything could cite it.
+const NUMBER_RE = /(?<!\w)(-?\d{1,3}(?:[,\s]\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?)\s*(%|km|m|kg|usd|aed|sar|EGP|EUR|GBP)?/giu;
 const ISO_DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/g;
 const DDMMYYYY_RE = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g;
 
