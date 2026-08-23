@@ -6,7 +6,7 @@ The product is mobile-ready in two layers, ordered by time-to-ship.
 
 The app is already a Progressive Web App. On Android Chrome:
 
-1. Visit your Vercel URL (e.g. `https://desktop-tutorial-kappa-five.vercel.app`).
+1. Visit your Vercel URL (e.g. `https://www.pitchora.ai`).
 2. Tap the kebab menu → **Install app** / **Add to Home screen**.
 3. The app launches in standalone mode (no browser chrome), with the
    gradient icon, themed status bar, and offline shell caching.
