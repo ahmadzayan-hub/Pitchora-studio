@@ -1,0 +1,20 @@
+name: Tenant RLS regression
+on:
+  pull_request:
+    paths: ['supabase/**', 'scripts/test-tenant-rls.py', '.github/workflows/tenant-rls.yml']
+  push:
+    branches: [main]
+    paths: ['supabase/**', 'scripts/test-tenant-rls.py', '.github/workflows/tenant-rls.yml']
+jobs:
+  tenant-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL from Ubuntu packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql
+      - name: Verify denied baseline and repaired policy on real PostgreSQL
+        shell: bash
+        run: |
+          PG_BIN="$(find /usr/lib/postgresql -mindepth 2 -maxdepth 2 -type d -name bin | sort -V | tail -1)"
+          python3 scripts/test-tenant-rls.py --pg-bin "$PG_BIN" --concurrent
