@@ -1,125 +1,152 @@
+<img src="src/app/presentiq/icon.svg" alt="Existing Pitchora presentation mark" width="76" height="76">
+
 # Pitchora
 
-**From a rough idea to a boardroom-ready deck, in minutes. Corporate
-standards enforced automatically.**
+**Turn source material into a presentation you can explain, edit and review.**
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fahmadzayan-hub%2FPitchora-studio-Private&project-name=pitchora&repository-name=pitchora&env=NEXT_PUBLIC_DEMO_MODE&envDescription=Set%20to%20%22true%22%20to%20run%20the%20app%20with%20deterministic%20sample%20data%20and%20no%20external%20integrations.%20Leave%20unset%20once%20you%27ve%20wired%20Supabase%20%2B%20Stripe%20%2B%20an%20AI%20provider.&envLink=https%3A%2F%2Fgithub.com%2Fahmadzayan-hub%2FPitchora-studio-Private%2Fblob%2Fmain%2F.env.example&demo-title=Pitchora&demo-description=AI%20boardroom%20presentation%20studio.%20Editable%20PPTX%20out%2C%20Arabic%20RTL%20native%2C%2010-dimension%20readiness%20score.&demo-url=https%3A%2F%2Fwww.pitchora.ai%2Fpresentiq)
+Pitchora brings storyboarding, brand kits, bilingual slide composition and
+editable PowerPoint export into one workspace. It is for people preparing a
+board, committee or client presentation who need to inspect what supports the
+story, not just produce attractive slides.
 
-One click ships this repository to a fresh Vercel
-project. The only env var you must set is `NEXT_PUBLIC_DEMO_MODE=true`
-so the app runs end-to-end without any third-party credentials. Wire
-Supabase / Stripe / an AI provider later when you're ready.
+Next.js 15 · React 18 · TypeScript · Supabase · PPTX · English / العربية
 
-**From the phone:** tap the Deploy button above → sign in to Vercel →
-name the project `pitchora` → set `NEXT_PUBLIC_DEMO_MODE=true` →
-Deploy. Ninety seconds later you get a `https://pitchora-*.vercel.app`
-URL. Open it in Chrome and tap "Install the app" from the mobile
-Install section to add Pitchora to your home screen as a native
-Android-style PWA.
+[Capabilities](#what-it-helps-you-do) · [Setup](#local-setup) ·
+[Verification](#verify-changes) · [Release guide](docs/REPOSITORY_GUIDE.md) ·
+[العربية](#بالعربية)
 
----
+## What it helps you do
 
-- **Repository**: [`github.com/ahmadzayan-hub/Pitchora-studio-Private`](https://github.com/ahmadzayan-hub/Pitchora-studio-Private)
-- **Canonical branch**: `main`
-- **Production**: `https://www.pitchora.ai`
-- **Ops runbook**: [`DEPLOY.md`](./DEPLOY.md)
-- **Security posture**: [`THREAT_MODEL.md`](./THREAT_MODEL.md) · [`SECURITY.md`](./SECURITY.md)
-- **Product audit**: [`AUDIT.md`](./AUDIT.md)
+| Your task | Repository capability | Important boundary |
+| --- | --- | --- |
+| Shape a presentation | Project wizard, narrative blueprint and slide editor | Generated content still needs a presenter’s review |
+| Keep a consistent identity | Brand kits, theme tokens and template tooling | Brand checks are not organizational approval |
+| Inspect support for a claim | Evidence references, quality checks and review surfaces | A citation does not establish that a claim is true |
+| Work in two languages | English/Arabic composition and RTL handling | Review wording and exported layout in both languages |
+| Hand off an editable deck | PPTX rendering and export routes | An exported file is not an accepted deliverable until checked |
 
-Pitchora is the **idea-to-deck studio**: an AI agent platform that closes the
-gap between a rough idea and a polished, brand-governed, evidence-controlled,
-bilingual deck. It is not an LLM prompt wrapper. It is a multi-agent workflow
-that combines:
+**Source material → Storyboard → Slides → Brand and evidence review → Editable export**
 
-1. Corporate brand governance
-2. Evidence-controlled content generation
-3. Editable PPTX rendering
-4. Arabic-English bilingual + RTL capability
-5. Boardroom storytelling
-6. 10-dimension corporate quality scoring
-7. Secure enterprise file handling
-8. Human review and approval workflow
-9. Fast per-slide regeneration
-10. Export to PPTX and PDF
+## Current status
 
-> **Mission:** behave like an AI-powered corporate presentation office.
+This is the `Pitchora-studio` repository on `main`. The presentation application lives
+at `/presentiq`. Its source also retains inherited learning routes and client
+packages; they are preserved, not reclassified as verified Pitchora features.
+See [product boundaries](docs/PRODUCT_AUTHORITY.md).
 
-## Why "Pitchora"
+The 23 October 2026 integration passed **227 tests across 27 suites**, TypeScript,
+lint, a production build and isolated PostgreSQL fresh-schema, additive-upgrade
+and tenant-concurrency checks on `5cd8dc86334990a13c822adc1c837d8e0f0e925c`.
+[Quality result](https://github.com/ahmadzayan-hub/Pitchora-studio/actions/runs/40004690768) · [Database result](https://github.com/ahmadzayan-hub/Pitchora-studio/actions/runs/40004690739)
 
-**Pitch + Aurora.** The act of pitching ideas + the luminous transformation
-from spark to polished narrative. The single word names exactly the problem
-the platform solves.
+**Code verification is not a completed hosted release.** Real hosted sign-in,
+PostgREST identity enforcement, existing production schema, historical role and
+billing-link provenance, backup recovery and end-user acceptance still require
+verification. A green CI build, static GitHub Page or preview URL does not
+establish those properties.
+
+Sample-data mode and the deterministic mock model exist for development. They
+are not the authenticated, durable product and must not be described as such.
+This README does not claim a verified production URL or change an existing host.
+
+## Local setup
+
+Quality CI uses Node.js 22 and the committed npm lockfile.
+
+```bash
+git clone https://github.com/ahmadzayan-hub/Pitchora-studio.git
+cd Pitchora-studio
+npm ci
+cp .env.example .env.local
+```
+
+Before starting an authenticated installation, configure a dedicated development
+backend and review the [setup and release guide](docs/REPOSITORY_GUIDE.md).
+
+- Set `NEXT_PUBLIC_DEMO_MODE=false`. The example file defaults to sample data;
+  changing this flag alone does not connect a backend.
+- Supply the correct Supabase URL and public key. Keep the service-role key on
+  the server, never in browser code or a public environment variable.
+- Verify the complete schema on an isolated database. Do not run only the
+  presentation migration or replay historical migrations over an unknown live
+  database. Follow the [schema coexistence review](docs/schema-coexistence-release-review.md)
+  and [tenant enrollment review](docs/tenant-enrollment-release-review.md).
+- Presentation generation currently resolves an Anthropic provider when its
+  server-side key is configured, otherwise a deterministic mock. The mock is
+  not real generation; provider spend and data-sharing approval are separate.
+- Configure storage and any optional billing integration only for the intended
+  project. Missing payment configuration is not permission to use live payments
+  for a smoke test.
+
+```bash
+npm run dev
+```
+
+Open **http://localhost:3000/presentiq**. The development server is only the
+application process; it does not provision a database, identity provider,
+storage, billing or model service.
+
+## Architecture
+
+| Area | Source |
+| --- | --- |
+| Presentation pages and editor | `src/app/presentiq/` |
+| Presentation API | `src/app/api/presentiq/` |
+| Story, evidence, brand, model and rendering logic | `src/lib/presentiq/` |
+| Presentation components | `src/components/presentiq/` |
+| Schema and isolated database regressions | `supabase/`, `scripts/test-tenant-rls.py` |
+| Product and design specifications | `docs/presentiq/` |
+
+The shared profile/learning schema is an integration boundary. Recent repairs
+preserve existing records, calculate deadline risk at read time, prevent normal
+profile writes from assigning privileged roles, and restrict client-side
+subscription changes. They do not certify historical data or assign new owners.
+
+## Verify changes
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+For database checks, use an isolated PostgreSQL installation with the extensions
+specified in the [schema review](docs/schema-coexistence-release-review.md):
+
+```bash
+python3 scripts/test-tenant-rls.py --pg-bin /path/to/postgresql/bin --full-chain --concurrent
+```
+
+The concurrent check starts a disposable local database and needs permission
+to do so. Never point this test at production. Hosted authentication, real
+browser flows and recovery exercises remain separate acceptance checks.
 
 ## Documentation
 
-The 14 design documents live in [`docs/presentiq/`](./docs/presentiq/README.md):
+- [Product authority](docs/PRODUCT_AUTHORITY.md) and [design-document index](docs/presentiq/README.md)
+- [Architecture](docs/presentiq/02-ARCHITECTURE.md), [API](docs/presentiq/05-API.md) and [PPTX rendering](docs/presentiq/10-PPTX-RENDERING.md)
+- [Security policy](SECURITY.md) and [threat model](THREAT_MODEL.md)
+- [Schema release review](docs/schema-coexistence-release-review.md) and [tenant release review](docs/tenant-enrollment-release-review.md)
+- [Repository guide](docs/REPOSITORY_GUIDE.md) for contribution checks, setup caveats and visual provenance
+- [Changelog](CHANGELOG.md)
 
-1. [Product Requirements](./docs/presentiq/01-PRD.md)
-2. [System Architecture](./docs/presentiq/02-ARCHITECTURE.md)
-3. [Agent Workflow](./docs/presentiq/03-AGENT-WORKFLOW.md)
-4. [Database Schema](./docs/presentiq/04-DATABASE.md)
-5. [API Specification](./docs/presentiq/05-API.md)
-6. [UI / Wireframes](./docs/presentiq/06-UI.md)
-7. [Brand Governance Engine](./docs/presentiq/07-BRAND-GOVERNANCE.md)
-8. [Evidence Engine](./docs/presentiq/08-EVIDENCE-ENGINE.md)
-9. [Arabic RTL Engine](./docs/presentiq/09-ARABIC-RTL.md)
-10. [PPTX Rendering Strategy](./docs/presentiq/10-PPTX-RENDERING.md)
-11. [Security Architecture](./docs/presentiq/11-SECURITY.md)
-12. [Billing Architecture](./docs/presentiq/12-BILLING.md)
-13. [MVP Implementation Plan](./docs/presentiq/13-MVP-PLAN.md)
-14. [Testing Plan](./docs/presentiq/14-TESTING.md)
+Older deployment notes contain inherited repository, branch and domain
+assumptions. Do not use them to delete projects, move domains or skip the
+current release reviews.
 
-## Stack
+## بالعربية
 
-- **Frontend:** Next.js 14 (App Router) · React 18 · TypeScript · Tailwind · Framer Motion · custom Pitchora motion primitives
-- **API:** Next.js Route Handlers · Zod validation · Supabase Auth
-- **DB:** Postgres (Supabase) + pgvector + Row-Level Security
-- **AI:** Pluggable model providers (Anthropic, Mock) · 17-agent orchestrator · prompt registry · canonical-input cache
-- **PPTX:** `pptxgenjs` · master slides · theme tokens · RTL paragraphs · charts/tables/diagrams · template intelligence
-- **Billing:** Stripe Checkout + Customer Portal + signed Webhooks
-- **Storage:** Supabase Storage (per-tenant prefixes) · short-lived signed URLs
+**Pitchora** مساحة لإعداد عروض تقديمية قابلة للتحرير والمراجعة، من تنظيم القصة
+والمصادر إلى الهوية البصرية وتصدير PowerPoint. تبقى مسؤولية التحقق من الادعاءات
+واعتماد العرض لدى المستخدم.
 
-## Quick Start
+نجاح الاختبارات لا يعني أن النسخة التشغيلية الكاملة أصبحت متاحة. التشغيل الفعلي
+يحتاج هوية حقيقية وقاعدة بيانات وتخزينًا وخدمة توليد مُهيأة ومختبرة. البيانات
+التجريبية والمولد الوهمي ليسا بديلًا عن ذلك، ولا يُقدمان على أنهما تشغيل كامل.
 
-```bash
-# 1. Install
-npm install
+## License and contributions
 
-# 2. Configure environment
-cp .env.example .env.local
-
-# 3. Apply database migration
-psql "$SUPABASE_DB_URL" -f supabase/migrations/0010_presentiq_init.sql
-
-# 4. Run dev server
-npm run dev
-# open http://localhost:3000/presentiq
-```
-
-> The product mounts at `/presentiq` for URL compatibility with v0.1–v0.4.
-> Deep-links and shared URLs from earlier releases continue to work.
-
-If `ANTHROPIC_API_KEY` is not set, the orchestrator falls back to a deterministic
-mock provider so the full pipeline runs end-to-end without any API key.
-
-## Project Layout
-
-```
-src/
-  lib/presentiq/        engine: types, brand, evidence, RTL, security, quality,
-                        AI orchestrator, prompts, PPTX renderer, template
-                        intelligence, storage, Stripe, auth
-  app/presentiq/        UI: landing, dashboard, wizard, editor, brand kits,
-                        admin, billing
-  app/api/presentiq/    REST: organisations, brand kits, projects, files,
-                        blueprint, slides, regenerate, quality, exports,
-                        comments, audit, billing webhook
-  components/presentiq/ UI primitives + QualityPanel + motion primitives
-                        (Reveal, Magnetic, Tilt, ParallaxMesh, AuroraWord)
-docs/presentiq/         the 14 design documents
-supabase/migrations/    0010_presentiq_init.sql (full DDL + RLS + seed)
-```
-
-## License
-
-Proprietary. All rights reserved.
+Proprietary. All rights reserved. This preserves the existing README notice;
+it does not introduce a new license. Preserve existing assets and notices,
+keep changes reviewable, and do not commit secrets or customer documents.
