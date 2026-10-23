@@ -35,7 +35,7 @@ test("invalid project restore preserves current draft and source text is not exe
   await page.getByRole("button", { name: "Compose source-led draft", exact: true }).click();
   await expect(page.getByLabel("Visible content").first()).toBeVisible();
   await page.getByLabel("Restore project JSON", { exact: true }).setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from('{"format":"other"}') });
-  await expect(page.getByRole("alert")).toContainText("Current work was preserved");
+  await expect(page.getByRole("alert").filter({ hasText: "Invalid project file" })).toContainText("Current work was preserved");
   await expect(page.getByLabel("Presentation title", { exact: true })).toHaveValue("Source safety");
 });
 

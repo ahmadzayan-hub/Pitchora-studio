@@ -58,3 +58,17 @@ The decorative generated slide-stack image preserves the existing canonical icon
 ### Security release gate
 
 An npm production audit on the starting dependency tree reported 17 findings (1 critical, 15 high, 1 moderate). Next.js advisory [GHSA-2464-fhr4-w9xw](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw) lists the 15.x patch at 15.5.28, with Sharp 0.35.5. Dependency patches must pass fresh CI and the final lockfile audit before deployment. Do not interpret `fixAvailable: false` as proof no vendor patch exists, or use forced major upgrades without compatibility review. Existing ExcelJS/PptxGenJS transitive advisories remain a separate triage gate; local text-only exports do not establish that all legacy server file parsers are safe.
+
+### Refreshed deployment map (23 October 2026, 20:03 UTC)
+
+Canonical `ahmadzayan-hub/Pitchora-studio` main baseline: `456a5fb628a33a67bd3c15bca970b5fb6c7a6c25`. Vercel's repository URL filter returned no linked project for this canonical repository. Do not treat the sibling's public alias as the current code.
+
+Existing `pitchorastudio.vercel.app` points to sibling repository `pitchorastudio`, production deployment `dpl_CrEiS55DAzyWXMuXBN7GASUM8CRK`, main SHA `339c2cc9f98fd9aa7a6fc55e4287acb445fc1b21`. Latest READY preview `dpl_8qiGHGErKjb5YPrPARehJ14k56vK` uses sibling branch `codex/schema-runtime-coexistence-20261023`, SHA `750529faef643ba9b0acc420d035e206755e0ea6`. Configured production branch/root were not returned and remain unverified. Other projects named pitchora, pitchora2 and pitchora-u3c2 returned no domains/latest deployment. No source links, domains or projects were changed. Canonical deployment requires a specific approved source-link decision and refreshed root/runtime settings.
+
+### Targeted dependency remediation
+
+Verified registry versions/integrities and a fresh `npm ci` confirm Next15.5.28 and resolved Sharp0.35.5. Targeted overrides select Next's nested PostCSS8.5.26, PptxGenJS's image-size2.0.4, brace-expansion1.1.21/2.1.7 and source-map-js1.2.2. No forced framework major update or ExcelJS downgrade.
+
+[image-size ICNS advisory](https://github.com/advisories/GHSA-w3rx-r6r6-pgpr) and [JXL/HEIF advisory](https://github.com/advisories/GHSA-5p2g-fcmc-qvqq) list2.0.3 as patched. PptxGenJS3.12's shipped CJS/ES/browser bundles do not import image-size (its manifest retains the dependency). The current official PptxGenJS4.0.1 also retains1.x, so upgrading that framework would not alone fix the dependency. The scoped override is covered by actual legacy-layout PNG embedding and editable SourceStudio PPTX regression exports, not by assuming a v1/v2 API match for unknown callers.
+
+Final production lockfile audit after these patches: **0 critical, 0 high, 2 moderate**. The two entries are ExcelJS and its uuid8.3.2 dependency, arising from UUID buffer-bounds behavior. No downgrade, forced major UUID override or suppression is applied. Existing spreadsheet loading must still be reviewed for untrusted input resource limits; zero high findings is not a general security certification. Full development-dependency audit is a separate check.
