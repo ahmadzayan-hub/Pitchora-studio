@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Isolated PostgreSQL RLS regression. No network, credentials or hosted database.
 Usage: python3 scripts/test-tenant-rls.py --pg-bin /path/to/postgresql/bin
-Use --full-chain to also expose unrelated historical migration conflicts.
+Use --full-chain to check every migration and shared-profile/deadline regressions.
 """
 import argparse
 import os
@@ -30,7 +30,7 @@ reserve = """do $$ declare n oid; begin loop
  exit when n >= 16384; end loop; end $$;"""
 
 
-def run(label, files, expected_failure=None):
+def run(label, files, expected_failure=None, required_markers=('TENANT_REGRESSION_PASS',)):
     with tempfile.TemporaryDirectory(prefix="tenant-rls-") as tmp:
         data = Path(tmp) / "data"
         subprocess.run([str(args.pg_bin / "initdb"), "-D", str(data), "--no-locale", "--encoding=UTF8", "--auth=trust"], check=True, capture_output=True)
@@ -42,7 +42,7 @@ def run(label, files, expected_failure=None):
         if expected_failure:
             ok = proc.returncode == 0 and len(errors) == 1 and expected_failure in errors[0]
         else:
-            ok = proc.returncode == 0 and not errors and 'result = "TENANT_REGRESSION_PASS"' in output
+            ok = proc.returncode == 0 and not errors and all(f'result = "{marker}"' in output for marker in required_markers)
         print(label + (": PASS" if ok else ": FAIL"))
         if not ok:
             print(output)
@@ -53,7 +53,13 @@ test = root / "supabase/tests/creator_bound_enrollment.sql"
 run("merged-baseline reproduces orphan takeover", [stub, *shared, test], "EXPECTED RLS DENIAL: insert into public.memberships")
 run("creator-bound tenant regression", [stub, *shared, repair, test])
 if args.full_chain:
-    run("complete migration chain", [stub, *migrations, test])
+    run("complete migration chain", [stub, *migrations, root / "supabase/tests/schema_coexistence.sql", root / "supabase/tests/onboarding_roundtrip.sql", test], required_markers=("SCHEMA_COEXISTENCE_PASS", "ONBOARDING_ROUNDTRIP_PASS", "TENANT_REGRESSION_PASS"))
+    coexistence = next(p for p in migrations if p.name.endswith("_tweenz_schema_coexistence.sql"))
+    run("existing-data additive upgrade", [stub, *[p for p in migrations if p != coexistence],
+        root / "supabase/tests/schema_upgrade_fixture.sql", coexistence,
+        root / "supabase/tests/schema_upgrade_assertions.sql",
+        root / "supabase/tests/schema_coexistence.sql", root / "supabase/tests/onboarding_roundtrip.sql", test],
+        required_markers=("SCHEMA_UPGRADE_PASS", "SCHEMA_COEXISTENCE_PASS", "ONBOARDING_ROUNDTRIP_PASS", "TENANT_REGRESSION_PASS"))
 if args.concurrent:
     with tempfile.TemporaryDirectory(prefix="tenant-race-") as tmp:
         data = Path(tmp) / "data"

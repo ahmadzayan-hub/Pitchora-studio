@@ -4,20 +4,18 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { User, Globe, Bell, Shield, Trash2, Download, Lock, Eye, EyeOff, CheckCircle, LogOut, GraduationCap, Sparkles } from "lucide-react";
 import Link from "next/link";
-
-interface Profile {
-  full_name?: string;
-  avatar_url?: string;
-}
+import { saveProfileRequest, type EditableProfile } from "./request";
 
 type Tab = "profile" | "language" | "notifications" | "privacy";
 
 export default function SettingsPage() {
   const { t, locale, setLocale, dir } = useI18n();
   const [tab, setTab] = useState<Tab>("profile");
-  const [profile, setProfile] = useState<Profile>({ full_name: "" });
+  const [profile, setProfile] = useState<EditableProfile>({ full_name: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileDemo, setProfileDemo] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
@@ -29,15 +27,24 @@ export default function SettingsPage() {
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
+    setSaved(false);
+    setProfileError(null);
+    setProfileDemo(false);
     setSaving(true);
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      const result = await saveProfileRequest(profile, t("error.generic"));
+      if (result.demo) {
+        setProfileDemo(true);
+        return;
+      }
+      setProfile(result.profile);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (cause) {
+      setProfileError(cause instanceof TypeError ? t("error.network") : cause instanceof Error ? cause.message : t("error.generic"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function changePassword(e: React.FormEvent) {
@@ -116,6 +123,8 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("settings.profile.fullName")}</label>
                   <input type="text" value={profile.full_name || ""} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} />
                 </div>
+                {profileError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{profileError}</p>}
+                {profileDemo && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">{dir === "rtl" ? "الوضع التجريبي: لم يتم حفظ تغييرات الملف الشخصي." : "Demo mode: your profile changes have not been saved."}</p>}
                 <button type="submit" disabled={saving} className="btn-primary w-full">
                   {saved ? <><CheckCircle className="w-4 h-4" />{t("settings.profile.saved")}</> : saving ? t("common.saving") : t("common.save")}
                 </button>

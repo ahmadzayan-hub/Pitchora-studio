@@ -23,6 +23,43 @@ create table if not exists public.users (
   updated_at    timestamptz not null default now()
 );
 
+-- Coexist with the presentation/orchestrator profile created by 0001.
+-- CREATE TABLE IF NOT EXISTS does not add columns to that existing table.
+alter table public.users
+  add column if not exists role text not null default 'student' check (role in ('student','instructor','admin')),
+  add column if not exists lang text not null default 'en' check (lang in ('en','ar')),
+  add column if not exists timezone text not null default 'Asia/Dubai',
+  add column if not exists avatar_url text,
+  add column if not exists onboarded boolean not null default false,
+  add column if not exists updated_at timestamptz not null default now();
+
+-- Profile self-edit permission must never confer a platform role. Trusted
+-- database/service provisioning remains separate from ordinary client updates.
+create or replace function public.protect_tweenz_role()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    if (tg_op = 'INSERT' and new.role is distinct from 'student')
+       or (tg_op = 'UPDATE' and new.role is distinct from old.role) then
+      raise exception 'platform role assignment requires trusted provisioning' using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists users_protect_tweenz_role on public.users;
+create trigger users_protect_tweenz_role before insert or update on public.users
+  for each row execute function public.protect_tweenz_role();
+
+-- A definer lookup avoids recursively invoking users' own RLS policy.
+-- No user-supplied ID, no metadata-derived role, no public execute grant.
+create or replace function public.is_tweenz_admin()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin');
+$$;
+revoke all on function public.is_tweenz_admin() from public;
+grant execute on function public.is_tweenz_admin() to authenticated;
+
 -- =============================================================================
 -- ACADEMIC PROFILES
 -- =============================================================================
@@ -154,14 +191,7 @@ create table if not exists public.deadlines (
   description text,
   due_date    timestamptz not null,
   type        text default 'assignment' check (type in ('assignment','quiz','exam','presentation','project','reading','lecture','admin')),
-  risk        text generated always as (
-    case
-      when due_date < now() then 'overdue'
-      when due_date < now() + interval '3 days' then 'at_risk'
-      when due_date < now() + interval '7 days' then 'due_soon'
-      else 'safe'
-    end
-  ) stored,
+  -- risk is time-relative and is calculated on read by the API, never stored.
   is_done     boolean not null default false,
   created_at  timestamptz not null default now()
 );
@@ -638,7 +668,7 @@ end $$;
 -- Users
 create policy "users_own" on public.users for all using (auth.uid() = id) with check (auth.uid() = id);
 create policy "users_admin_read" on public.users for select using (
-  exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+  public.is_tweenz_admin()
 );
 
 -- Generic user-owned tables helper function
@@ -648,7 +678,8 @@ $$ language sql stable security definer;
 
 -- Macro: each table with user_id column
 create policy "academic_profiles_own" on public.academic_profiles for all using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "subscriptions_own" on public.subscriptions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- Entitlements and provider customer bindings are trusted provisioning, not profile fields.
+create policy "subscriptions_own_read" on public.subscriptions for select to authenticated using (user_id = auth.uid());
 create policy "payments_own" on public.payments for select using (user_id = auth.uid());
 create policy "courses_own" on public.courses for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "announcements_own" on public.announcements for all using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -682,10 +713,13 @@ create policy "integration_connections_own" on public.integration_connections fo
 create policy "moodle_imports_own" on public.moodle_imports for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "ai_usage_logs_own" on public.ai_usage_logs for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- Admin settings must actually have RLS enabled for the policies to apply.
+alter table public.admin_settings enable row level security;
+
 -- Admin access to all
 create policy "admin_settings_read" on public.admin_settings for select using (true);
 create policy "admin_settings_write" on public.admin_settings for all using (
-  exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+  public.is_tweenz_admin()
 );
 
 -- =============================================================================
@@ -720,23 +754,26 @@ end $$;
 -- =============================================================================
 
 create or replace function public.handle_new_user()
-returns trigger as $$
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  new_org_id uuid;
 begin
-  insert into public.users (id, email, display_name)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
-  )
-  on conflict (id) do nothing;
+  -- Keep both products' enrollment: personal workspace AND learning trial.
+  -- Full UUID suffix avoids the old six-character slug collision.
+  insert into public.organizations (name, slug)
+  values (split_part(new.email, '@', 1) || '''s workspace', 'personal-' || new.id::text)
+  returning id into new_org_id;
 
+  insert into public.users (id, email, display_name, default_org_id)
+  values (new.id, new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)), new_org_id);
+  insert into public.memberships (user_id, org_id, role)
+  values (new.id, new_org_id, 'owner');
   insert into public.subscriptions (user_id, plan, status, trial_ends_at, ai_queries_limit)
-  values (new.id, 'free', 'trialing', now() + interval '7 days', 10)
-  on conflict (user_id) do nothing;
-
+  values (new.id, 'free', 'trialing', now() + interval '7 days', 10);
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

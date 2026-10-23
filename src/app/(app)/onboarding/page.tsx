@@ -2,27 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { OnboardingData } from "@/lib/profile-input";
+import { saveOnboarding } from "./request";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { GraduationCap, ChevronRight, ChevronLeft, Check } from "lucide-react";
 
 const STEPS = ["welcome", "program", "goals", "preferences"] as const;
 type Step = typeof STEPS[number];
 
-interface OnboardingData {
-  full_name: string;
-  program_name: string;
-  university: string;
-  gpa_scale: "4.0" | "100";
-  study_hours_per_week: number;
-  primary_language: "en" | "ar";
-  goal: "gpa" | "skills" | "career" | "research";
-}
-
 export default function OnboardingPage() {
   const { t, dir } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [demoNotice, setDemoNotice] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     full_name: "",
     program_name: "MBA",
@@ -38,13 +33,21 @@ export default function OnboardingPage() {
   }
 
   async function finish() {
+    setError(null);
+    setDemoNotice(false);
     setSaving(true);
-    await fetch("/api/profile/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    router.push("/dashboard");
+    try {
+      const result = await saveOnboarding(data, t("error.generic"));
+      if (result.demo) {
+        setDemoNotice(true);
+        return;
+      }
+      router.push("/dashboard");
+    } catch (cause) {
+      setError(cause instanceof TypeError ? t("error.network") : cause instanceof Error ? cause.message : t("error.generic"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   const isLast = step === STEPS.length - 1;
@@ -179,11 +182,19 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</p>}
+          {demoNotice && (
+            <div role="status" className="mt-4 rounded-xl bg-brand-50 p-3 text-sm text-slate-700 dark:bg-brand-950 dark:text-slate-200">
+              <p>{dir === "rtl" ? "الوضع التجريبي: لم يتم حفظ بيانات الإعداد." : "Demo mode: your onboarding details have not been saved."}</p>
+              <Link href="/dashboard" className="mt-2 inline-block underline">{dir === "rtl" ? "المتابعة إلى لوحة التحكم" : "Continue to dashboard"}</Link>
+            </div>
+          )}
+
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8">
             <button
               onClick={() => setStep(s => Math.max(0, s - 1))}
-              disabled={step === 0}
+              disabled={step === 0 || saving}
               className="btn-secondary"
             >
               <ChevronLeft className="w-4 h-4" />

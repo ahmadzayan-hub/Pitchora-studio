@@ -1,11 +1,13 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/db/supabase-server";
+import { withDeadlineRisk } from "@/lib/deadline-risk";
 
 export async function GET() {
   const { user, supabase, unauthorized } = await requireUser();
   if (unauthorized) return unauthorized;
 
+  const now = Date.now();
   const [courses, grades, deadlines, announcements, files] = await Promise.all([
     supabase.from("courses").select("*").eq("user_id", user.id),
     supabase.from("grades").select("*").eq("user_id", user.id),
@@ -15,11 +17,11 @@ export async function GET() {
   ]);
 
   const exportData = {
-    exported_at: new Date().toISOString(),
+    exported_at: new Date(now).toISOString(),
     user_id: user.id,
     courses: courses.data || [],
     grades: grades.data || [],
-    deadlines: deadlines.data || [],
+    deadlines: deadlines.data?.map((deadline: any) => withDeadlineRisk(deadline, now)) || [],
     announcements: announcements.data || [],
     files: files.data || [],
   };
@@ -27,7 +29,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(exportData, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="tweenz-data-${Date.now()}.json"`,
+      "Content-Disposition": `attachment; filename="tweenz-data-${now}.json"`,
     },
   });
 }

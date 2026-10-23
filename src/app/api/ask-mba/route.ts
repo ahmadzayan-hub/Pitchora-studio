@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getUser } from "@/lib/db/supabase-server";
 import { aiChat } from "@/lib/ai/client";
+import { withDeadlineRisk } from "@/lib/deadline-risk";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -23,10 +24,12 @@ export async function POST(req: NextRequest) {
   }
   const supabase = await createClient();
 
+  const now = Date.now();
+
   // Gather academic context
   const [courses, deadlines, announcements, grades] = await Promise.all([
     supabase.from("courses").select("name, code, progress, status").eq("user_id", user.id).limit(10),
-    supabase.from("deadlines").select("title, due_date, risk, type, courses(name)").eq("user_id", user.id).eq("is_done", false).order("due_date").limit(10),
+    supabase.from("deadlines").select("title, due_date, type, courses(name)").eq("user_id", user.id).eq("is_done", false).order("due_date").limit(10),
     supabase.from("announcements").select("title, summary, risk_level, courses(name)").eq("user_id", user.id).eq("is_archived", false).order("created_at", { ascending: false }).limit(5),
     supabase.from("grades").select("category, item_name, score, max_score, weight, courses(name)").eq("user_id", user.id).limit(20),
   ]);
@@ -38,7 +41,7 @@ COURSES:
 ${courses.data?.map((c: any) => `- ${c.name} (${c.code}) — Progress: ${c.progress}% — Status: ${c.status}`).join("\n") ?? "No courses"}
 
 UPCOMING DEADLINES:
-${deadlines.data?.map((d: any) => `- ${d.title} | ${(d.courses as any)?.name} | Due: ${d.due_date} | Risk: ${d.risk}`).join("\n") ?? "No deadlines"}
+${deadlines.data?.map((d: any) => withDeadlineRisk(d, now)).map((d: any) => `- ${d.title} | ${(d.courses as any)?.name} | Due: ${d.due_date} | Risk: ${d.risk}`).join("\n") ?? "No deadlines"}
 
 RECENT ANNOUNCEMENTS:
 ${announcements.data?.map((a: any) => `- ${a.title} | ${(a.courses as any)?.name} | Risk: ${a.risk_level} | ${a.summary}`).join("\n") ?? "No announcements"}
