@@ -17,4 +17,4 @@ jobs:
         shell: bash
         run: |
           PG_BIN="$(find /usr/lib/postgresql -mindepth 2 -maxdepth 2 -type d -name bin | sort -V | tail -1)"
-          python3 scripts/test-tenant-rls.py --pg-bin "$PG_BIN"
+          python3 scripts/test-tenant-rls.py --pg-bin "$PG_BIN" --concurrent
