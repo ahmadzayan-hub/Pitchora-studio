@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getUser } from "@/lib/db/supabase-server";
 import { aiChat } from "@/lib/ai/client";
+import { withDeadlineRisk } from "@/lib/deadline-risk";
 import { demoReturn } from "@/lib/demo";
 
 export async function GET() {
@@ -19,17 +20,18 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = await createClient();
 
+  const now = new Date();
   const [courses, deadlines, announcements, grades, tasks] = await Promise.all([
     supabase.from("courses").select("name, progress, status").eq("user_id", user.id),
-    supabase.from("deadlines").select("title, due_date, risk, type, courses(name)").eq("user_id", user.id).eq("is_done", false).lte("due_date", new Date(Date.now() + 14 * 86400000).toISOString()),
-    supabase.from("announcements").select("title, summary, risk_level").eq("user_id", user.id).eq("is_archived", false).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+    supabase.from("deadlines").select("title, due_date, type, courses(name)").eq("user_id", user.id).eq("is_done", false).lte("due_date", new Date(now.getTime() + 14 * 86400000).toISOString()),
+    supabase.from("announcements").select("title, summary, risk_level").eq("user_id", user.id).eq("is_archived", false).gte("created_at", new Date(now.getTime() - 7 * 86400000).toISOString()),
     supabase.from("grades").select("item_name, score, max_score, courses(name)").eq("user_id", user.id),
     supabase.from("tasks").select("title, status, priority").eq("user_id", user.id).neq("status", "completed"),
   ]);
 
   const context = `
 Courses: ${JSON.stringify(courses.data)}
-Deadlines: ${JSON.stringify(deadlines.data)}
+Deadlines: ${JSON.stringify(deadlines.data?.map((deadline: any) => withDeadlineRisk(deadline, now.getTime())) ?? null)}
 Announcements: ${JSON.stringify(announcements.data)}
 Grades: ${JSON.stringify(grades.data)}
 Tasks: ${JSON.stringify(tasks.data)}
@@ -57,7 +59,6 @@ Student data: ${context}`;
   let content: any = {};
   try { content = JSON.parse(response.replace(/```json\n?|\n?```/g, "").trim()); } catch {}
 
-  const now = new Date();
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
 

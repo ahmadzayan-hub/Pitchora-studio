@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { Calendar, Clock, AlertTriangle, CheckCircle, Plus, X } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow, isThisWeek } from "date-fns";
+import { apiRequestError } from "@/lib/request-error";
 
 interface Deadline {
   id: string;
@@ -31,6 +32,7 @@ export default function TimelinePage() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", due_date: "", course_id: "", type: "assignment", weight: "" });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -44,28 +46,45 @@ export default function TimelinePage() {
 
   async function addDeadline(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setSaving(true);
-    const r = await fetch("/api/deadlines", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, weight: form.weight ? Number(form.weight) : null }),
-    });
-    if (r.ok) {
+    try {
+      const r = await fetch("/api/deadlines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, weight: form.weight ? Number(form.weight) : null }),
+      });
+      if (!r.ok) {
+        setError(await apiRequestError(r, t("error.generic")));
+        return;
+      }
       const d = await r.json();
       setDeadlines(prev => [d, ...prev].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()));
       setForm({ title: "", due_date: "", course_id: "", type: "assignment", weight: "" });
       setShowAdd(false);
+    } catch {
+      setError(t("error.network"));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function toggleComplete(id: string, current: boolean) {
-    const r = await fetch(`/api/deadlines/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_completed: !current }),
-    });
-    if (r.ok) setDeadlines(prev => prev.map(d => d.id === id ? { ...d, is_completed: !current } : d));
+    setError(null);
+    try {
+      const r = await fetch(`/api/deadlines/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_completed: !current }),
+      });
+      if (!r.ok) {
+        setError(await apiRequestError(r, t("error.generic")));
+        return;
+      }
+      setDeadlines(prev => prev.map(d => d.id === id ? { ...d, is_completed: !current } : d));
+    } catch {
+      setError(t("error.network"));
+    }
   }
 
   function riskClass(risk: string) {
@@ -102,7 +121,7 @@ export default function TimelinePage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("timeline.title")}</h1>
           <p className="text-sm text-slate-500 mt-1">{t("timeline.subtitle")}</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary">
+        <button onClick={() => { setError(null); setShowAdd(true); }} className="btn-primary">
           <Plus className="w-4 h-4" />
           {t("timeline.addDeadline")}
         </button>
@@ -122,6 +141,12 @@ export default function TimelinePage() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+          {error}
+        </p>
+      )}
 
       {/* Add form */}
       {showAdd && (
