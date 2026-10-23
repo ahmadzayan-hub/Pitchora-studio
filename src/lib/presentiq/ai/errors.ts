@@ -4,6 +4,7 @@ export class ProviderFailure extends Error {
   constructor(public readonly code: ProviderFailureCode, public readonly retryAfterSeconds?: number) { super(code); this.name = "ProviderFailure"; }
 }
 export function publicGenerationFailure(error: unknown) {
+  if (error instanceof Error && error.name === "AbortError") error = new ProviderFailure("generation_cancelled");
   if (!(error instanceof ProviderFailure)) return { code: "generation_failed", message: "Generation stopped. Check sources and provider availability; existing work is preserved.", status: 422 };
   const messages: Record<ProviderFailureCode, string> = {
     model_unavailable: "Configured model is unavailable. It may be retired, unknown or inaccessible; an owner must verify the model setting. Existing work is preserved.",

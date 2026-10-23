@@ -176,7 +176,7 @@ export class Orchestrator {
       const inj = scanForInjection(user);
       if (!inj.ok) throw new Error(`security_block: ${inj.reason}`);
 
-      const hash = canonicalHash({ system, user }, agent, PROMPTS[agent].version);
+      const hash = canonicalHash({ system, user, provider: this.provider.cacheIdentity ?? this.provider.name }, agent, PROMPTS[agent].version);
       const cached = await this.cache.get(this.orgId, agent, PROMPTS[agent].version, hash);
       if (cached !== null) {
         this.onTrace({ kind: "agent_done", agent, traceId, latencyMs: Date.now() - start, cacheHit: true });

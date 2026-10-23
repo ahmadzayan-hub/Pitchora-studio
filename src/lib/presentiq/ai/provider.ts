@@ -32,6 +32,7 @@ export type EmbedResult = { vector: number[]; model: string; dim: number };
 
 export interface ModelProvider {
   name: string;
+  readonly cacheIdentity?: string;
   enterpriseSafe: boolean;
   complete(req: CompletionRequest): Promise<CompletionResult>;
   embed(text: string): Promise<EmbedResult>;
@@ -117,6 +118,7 @@ export class AnthropicProvider implements ModelProvider {
   private readonly apiKey: string;
   private readonly model: string;
   private readonly embedFallback?: ModelProvider;
+  get cacheIdentity() { return `anthropic:${this.model}`; }
 
   constructor(opts: { apiKey: string; model?: string; embedFallback?: ModelProvider }) {
     this.apiKey = opts.apiKey;

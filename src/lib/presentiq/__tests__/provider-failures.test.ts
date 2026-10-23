@@ -37,4 +37,8 @@ describe("provider lifecycle and quota failure contract", () => {
     await provider().complete({...request,temperature:0.4});
     const body=JSON.parse(fetch.mock.calls[0][1].body);expect(body.model).toBe("claude-sonnet-4-6");expect(body.temperature).toBeUndefined();
   });
+  it("separates model cache identities and maps upstream cancellation safely", () => {
+    expect(new AnthropicProvider({apiKey:"fixture",model:"model-one"}).cacheIdentity).not.toBe(new AnthropicProvider({apiKey:"fixture",model:"model-two"}).cacheIdentity);
+    expect(publicGenerationFailure(new DOMException("private cancellation detail", "AbortError"))).toMatchObject({code:"generation_cancelled",status:408});
+  });
 });
