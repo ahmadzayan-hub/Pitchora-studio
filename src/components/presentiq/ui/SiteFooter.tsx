@@ -74,7 +74,7 @@ export function SiteFooter() {
             <Logo variant="horizontal" height={24} />
           </Link>
           <p>{t("foot.tagline")}</p>
-          <ul className="pq-footer-slim-trust" aria-label="Trust marks" style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+          <ul className="pq-footer-slim-trust" aria-label="Product capabilities" style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
             {trustParts.map((label, i) => {
               const Icon = i === 0 ? ShieldCheck : i === 1 ? Star : Check;
               return (

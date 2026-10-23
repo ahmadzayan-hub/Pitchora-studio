@@ -89,13 +89,15 @@ export function PresentIqShell({ children }: { children: ReactNode }) {
             <LangToggle />
             {/* "Log in" pill removed in v0.4.3 — auth flow isn't shipped yet,
                 so the pill led nowhere meaningful. Re-add when /login is real. */}
+            <span className="hidden md:block">
             <Link
-              href="/presentiq/projects/new"
-              className="pq-btn pq-btn-liquid pq-btn-liquid-primary pq-btn-liquid-pill hidden md:inline-flex"
+              href="/presentiq/source-studio"
+              className="pq-btn pq-btn-liquid pq-btn-liquid-primary pq-btn-liquid-pill"
               style={{ padding: "0.55rem 1.05rem", fontSize: "0.85rem" }}
             >
-              <span aria-hidden>＋</span> {t("nav.new")}
+              <span aria-hidden>＋</span> {lang === "ar" ? "استوديو المصادر" : "Source Studio"}
             </Link>
+            </span>
             <button
               type="button"
               className="lg:hidden pq-btn pq-btn-ghost"
@@ -131,11 +133,11 @@ export function PresentIqShell({ children }: { children: ReactNode }) {
                 </Link>
               ))}
               <Link
-                href="/presentiq/projects/new"
+                href="/presentiq/source-studio"
                 onClick={() => setMobileOpen(false)}
                 className="pq-btn pq-btn-primary mt-2 justify-center"
               >
-                <span aria-hidden>＋</span> {t("nav.new")}
+                <span aria-hidden>＋</span> {lang === "ar" ? "استوديو المصادر" : "Source Studio"}
               </Link>
             </div>
           </nav>

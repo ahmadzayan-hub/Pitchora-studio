@@ -1,8 +1,9 @@
+import { sourceEvidence } from "@/lib/presentiq/evidence/source-ledger";
 import { randomUUID } from "node:crypto";
-import { extractFromBuffer, getRequestContext, getSupabase, isDemoContext, scanForInjection, writeAudit, sanitiseForAgent, heuristicClassify } from "@/lib/presentiq";
+import { extractFromBuffer, getRequestContext, getSupabase, isDemoContext, scanForInjection, writeAudit, sanitiseForAgent } from "@/lib/presentiq";
 import { fail, json, notFound } from "@/lib/presentiq/api/response";
 
-const MAX = 50 * 1024 * 1024; // 50 MB
+const MAX = 10 * 1024 * 1024; // 10 MB
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -22,15 +23,9 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const params = await props.params;
   const ctx = await getRequestContext();
 
-  // Demo path — accept files but skip persistence; return their metadata.
-  if (isDemoContext(ctx)) {
-    const form = await req.formData().catch(() => null);
-    if (!form) return fail("invalid_form", "expected multipart form", 400);
-    const files = form.getAll("file").filter((f): f is File => f instanceof File);
-    return json({
-      items: files.map((f) => ({ id: randomUUID(), filename: f.name, status: "clean" })),
-    });
-  }
+  // A sample workspace must never pretend that uploaded sources were processed.
+  if (isDemoContext(ctx)) return fail("source_storage_unavailable", "Connect an authenticated workspace before uploading sources. No file was processed or saved.", 503);
+  if (!["owner", "admin", "editor"].includes(ctx.role)) return fail("forbidden", "Editor access required", 403);
 
   const supabase = await getSupabase();
 
@@ -47,6 +42,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
   const files = form.getAll("file").filter((f): f is File => f instanceof File);
   if (!files.length) return fail("missing_file", "at least one file", 400);
+  if (files.length > 5 || files.reduce((n, f) => n + f.size, 0) > MAX) return fail("upload_limit", "At most five files and 10 MB per request", 413);
 
   const created: any[] = [];
   for (const file of files) {
@@ -56,23 +52,29 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     }
     const buf = Buffer.from(await file.arrayBuffer());
 
-    const safePath = `org/${ctx.orgId}/projects/${params.id}/sources/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const fileId = randomUUID();
+    const extracted = await extractFromBuffer(fileId, file.name, file.type, buf);
+    if (extracted.status !== "extracted") {
+      created.push({ filename: file.name, error: extracted.status, warnings: extracted.warnings });
+      continue;
+    }
+    const safePath = `org/${ctx.orgId}/projects/${params.id}/sources/${fileId}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error: upErr } = await supabase.storage.from("pq-uploads").upload(safePath, buf, {
       contentType: file.type || "application/octet-stream",
       upsert: false,
     });
     if (upErr) {
-      created.push({ filename: file.name, error: "upload_failed", detail: upErr.message });
+      created.push({ filename: file.name, error: "upload_failed" });
       continue;
     }
 
-    const extracted = await extractFromBuffer(randomUUID(), file.name, file.type, buf);
     const inj = scanForInjection(extracted.text);
     const status = inj.ok ? "clean" : "blocked";
 
-    const { data: row } = await supabase
+    const { data: row, error: insertError } = await supabase
       .from("pq_source_files")
       .insert({
+        id: fileId,
         organization_id: ctx.orgId,
         project_id: params.id,
         filename: file.name,
@@ -81,7 +83,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         size_bytes: file.size,
         storage_path: safePath,
         extracted_text: status === "clean" ? sanitiseForAgent(extracted.text) : null,
-        extracted_metadata: { numbers: extracted.numbers, dates: extracted.dates },
+        extracted_metadata: { numbers: extracted.numbers, dates: extracted.dates, pages: extracted.pages, extraction_status: extracted.status, warnings: extracted.warnings },
         ingestion_status: "done",
         injection_check_status: status,
         confidentiality_level: project.confidentiality_level,
@@ -89,9 +91,19 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       .select()
       .single();
 
-    // Auto-create heuristic evidence items for sentences containing numbers.
-    if (status === "clean" && row && extracted.text) {
-      await seedEvidence(supabase, ctx.orgId, params.id, row.id, extracted.text);
+    if (insertError || !row) {
+      await supabase.storage.from("pq-uploads").remove([safePath]);
+      created.push({ filename: file.name, error: "source_save_failed" });
+      continue;
+    }
+    if (status === "clean") {
+      const items = sourceEvidence(extracted, params.id).map(item => ({ ...item, organization_id: ctx.orgId }));
+      const evidenceError = items.length ? (await supabase.from("pq_evidence_items").insert(items)).error : new Error("no_source_passages");
+      if (evidenceError) {
+        await supabase.from("pq_source_files").update({ ingestion_status: "failed" }).eq("id", row.id).eq("organization_id", ctx.orgId);
+        created.push({ id: row.id, filename: file.name, error: "evidence_save_failed" });
+        continue;
+      }
     }
 
     await writeAudit(supabase, {
@@ -103,31 +115,5 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     created.push({ id: row?.id, filename: file.name, status });
   }
 
-  return json({ items: created });
-}
-
-async function seedEvidence(supabase: any, orgId: string, projectId: string, fileId: string, text: string) {
-  const sentences = splitSentences(text).slice(0, 60);
-  const items = sentences
-    .map((s) => s.trim())
-    .filter((s) => s.length > 12 && s.length < 360 && /\d|[A-Z][a-z]+/.test(s))
-    .slice(0, 30)
-    .map((claim) => {
-      const cls = heuristicClassify(claim);
-      return {
-        organization_id: orgId,
-        project_id: projectId,
-        source_file_id: fileId,
-        claim,
-        classification: cls.classification,
-        confidence: cls.confidence,
-        source_reference: { file_id: fileId },
-      };
-    });
-  if (!items.length) return;
-  await supabase.from("pq_evidence_items").insert(items);
-}
-
-function splitSentences(text: string): string[] {
-  return text.replace(/\s+/g, " ").split(/(?<=[.!?؟])\s+/).filter(Boolean);
+  return json({ items: created }, { status: created.every(item => item.error) ? 422 : 200 });
 }

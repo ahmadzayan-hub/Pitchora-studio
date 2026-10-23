@@ -1,3 +1,4 @@
+import { publicGenerationFailure } from "@/lib/presentiq/ai/errors";
 import {
   buildOrchestrator,
   getRequestContext,
@@ -15,7 +16,7 @@ import { buildDemoBlueprint, buildDemoSlides } from "@/lib/presentiq/demo/bluepr
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const ctx = await getRequestContext();
 
@@ -85,13 +86,18 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     .eq("project_id", project.id)
     .limit(500);
 
-  await supabase.from("pq_presentation_projects").update({ status: "generating" }).eq("id", project.id);
+  // Existing schema has UNIQUE(project_id, slide_number), not version-scoped slides.
+  // Preserve the existing deck until an owner-reviewed atomic replacement migration exists.
+  const { count: existingCount, error: existingError } = await supabase.from("pq_slides").select("id", { count: "exact", head: true }).eq("project_id", project.id);
+  if (existingError) return fail("storage_unavailable", "Could not verify existing slides", 503);
+  if (existingCount) return fail("replacement_requires_atomic_storage", "Existing slides were preserved. Use Source Studio for a separate editable draft; hosted replacement needs atomic version storage.", 409);
 
   const provider = resolveProvider({
     apiKey: process.env.ANTHROPIC_API_KEY,
+    model: process.env.ANTHROPIC_MODEL,
     confidentiality: project.confidentiality_level,
   });
-  const orch = buildOrchestrator({ provider, orgId: ctx.orgId });
+  const orch = buildOrchestrator({ provider, orgId: ctx.orgId, signal: req.signal });
 
   let slides: Slide[] = [];
   let quality;
@@ -105,7 +111,8 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     slides = result.slides;
     quality = result.quality;
   } catch (e) {
-    return fail("generation_failed", (e as Error).message, 500);
+    const failure = publicGenerationFailure(e);
+    return fail(failure.code, failure.message, failure.status);
   }
 
   const { data: lastVersion } = await supabase
@@ -116,7 +123,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     .limit(1);
   const nextVersion = (lastVersion?.[0]?.version_number ?? 0) + 1;
 
-  const { data: deckVersion } = await supabase
+  const { data: deckVersion, error: versionError } = await supabase
     .from("pq_deck_versions")
     .insert({
       organization_id: ctx.orgId,
@@ -129,8 +136,8 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     .select()
     .single();
 
-  await supabase.from("pq_slides").delete().eq("project_id", project.id);
-  await supabase.from("pq_slides").insert(
+  if (versionError || !deckVersion) return fail("storage_failed", "Deck version could not be saved", 503);
+  const { error: slideError } = await supabase.from("pq_slides").insert(
     slides.map((s) => ({
       organization_id: ctx.orgId,
       project_id: project.id,
@@ -152,7 +159,9 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     })),
   );
 
-  await supabase.from("pq_presentation_projects").update({ status: "ready" }).eq("id", project.id);
+  if (slideError) return fail("storage_failed", "Slides were not saved; no completed output is reported", 503);
+  const { error: readyError } = await supabase.from("pq_presentation_projects").update({ status: "ready" }).eq("id", project.id);
+  if (readyError) return fail("storage_failed", "Slides saved, but project status could not be updated", 503);
 
   await writeAudit(supabase, {
     organization_id: ctx.orgId, user_id: ctx.userId, action: "project.generate_deck",

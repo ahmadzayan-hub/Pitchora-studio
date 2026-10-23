@@ -12,6 +12,8 @@ import { sanitiseForAgent } from "../security/guardrail";
 
 export type ExtractedDoc = {
   fileId: string;
+  status: "extracted" | "empty" | "unsupported" | "failed";
+  warnings: string[];
   text: string;
   pages?: { number: number; text: string }[];
   tables?: { page: number; rows: string[][] }[];
@@ -37,9 +39,12 @@ export async function extractFromBuffer(
 ): Promise<ExtractedDoc> {
   const lower = filename.toLowerCase();
   let text = "";
+  let status: ExtractedDoc["status"] = "extracted";
+  const warnings: string[] = [];
   let pages: { number: number; text: string }[] | undefined;
 
   try {
+    if (buf.length > 10 * 1024 * 1024) throw new Error("file_too_large");
     if (mime === "text/plain" || lower.endsWith(".txt")) {
       text = buf.toString("utf-8");
     } else if (lower.endsWith(".csv") || mime === "text/csv") {
@@ -52,19 +57,27 @@ export async function extractFromBuffer(
       text = await tryDocx(buf);
     } else if (lower.endsWith(".pptx")) {
       text = await tryPptx(buf);
-    } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+    } else if (lower.endsWith(".xlsx")) {
       text = await tryXlsx(buf);
     } else {
-      text = buf.toString("utf-8");
+      status = "unsupported";
+      warnings.push("Unsupported format. Convert to PDF, DOCX, PPTX, XLSX, CSV or TXT.");
     }
-  } catch (err) {
+  } catch {
     text = "";
+    status = "failed";
+    warnings.push("Extraction failed; no usable source was created.");
   }
 
   text = sanitiseForAgent(text);
+  if (pages) pages = pages.map(p => ({ ...p, text: sanitiseForAgent(p.text) }));
+  if (text.length > 200_000) { text = ""; pages = []; status = "failed"; warnings.push("Source exceeds 200,000 extracted characters."); }
+  if (!text.trim() && status === "extracted") { status = "empty"; warnings.push("No readable text. Scanned pages and embedded images require OCR or a text version; no OCR was performed."); }
 
   return {
     fileId,
+    status,
+    warnings,
     text,
     pages,
     numbers: extractNumbers(text),
@@ -75,17 +88,30 @@ export async function extractFromBuffer(
 // ----------- format-specific best-effort parsers -----------
 
 async function tryPdf(buf: Buffer): Promise<{ text: string; pages: { number: number; text: string }[] }> {
-  // Optional dependency: pdf-parse. Imported dynamically and cast to `any`
-  // because the package has no shipped type declarations.
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const task = getDocument({ data: new Uint8Array(buf), useSystemFonts: false, disableFontFace: true });
+  const timeout = setTimeout(() => { void task.destroy(); }, 30_000);
   try {
-    const mod: any = await import("pdf-parse" as any);
-    const pdfParse = (mod && (mod.default ?? mod)) as (b: Buffer) => Promise<{ text?: string }>;
-    const result = await pdfParse(buf);
-    const text: string = result.text ?? "";
-    return { text, pages: [{ number: 1, text }] };
-  } catch {
-    return { text: "", pages: [] };
-  }
+    const doc = await task.promise;
+    if (doc.numPages > 200) throw new Error("page_limit");
+    const pages: { number: number; text: string }[] = [];
+    let chars = 0;
+    for (let number = 1; number <= doc.numPages; number++) {
+      const page = await doc.getPage(number);
+      const content = await page.getTextContent();
+      let lastY: number | undefined;
+      let text = "";
+      for (const item of content.items) {
+        if (!("str" in item)) continue;
+        const y = item.transform[5];
+        text += (lastY !== undefined && lastY !== y ? "\n" : text ? " " : "") + item.str;
+        lastY = y;
+      }
+      chars += text.length; if (chars > 200_000) throw new Error("text_limit");
+      pages.push({ number, text }); page.cleanup();
+    }
+    return { text: pages.map(p => p.text).join("\n\n"), pages };
+  } finally { clearTimeout(timeout); await task.destroy(); }
 }
 
 async function tryDocx(buf: Buffer): Promise<string> {
@@ -104,7 +130,7 @@ async function tryPptx(buf: Buffer): Promise<string> {
     const zip = await JSZip.loadAsync(buf);
     const slidePaths = Object.keys(zip.files).filter(
       (p) => p.startsWith("ppt/slides/slide") && p.endsWith(".xml"),
-    );
+    ).sort((a, b) => Number(a.match(/slide(\d+)\.xml/)?.[1]) - Number(b.match(/slide(\d+)\.xml/)?.[1]));
     const out: string[] = [];
     for (const path of slidePaths) {
       const xml = await zip.files[path].async("string");

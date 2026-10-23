@@ -1,0 +1,52 @@
+name: Source delivery acceptance
+on:
+  pull_request:
+    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', 'scripts/ci/**', 'scripts/test-ci-dependencies.py', '.github/workflows/source-delivery.yml']
+  push:
+    branches: [main]
+    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', 'scripts/ci/**', 'scripts/test-ci-dependencies.py', '.github/workflows/source-delivery.yml']
+permissions:
+  contents: read
+concurrency:
+  group: source-delivery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-and-media:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_DEMO_MODE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: python3 scripts/test-ci-dependencies.py
+      - run: bash scripts/ci/install_system_dependencies.sh
+      - run: npx playwright install chromium
+      - run: python3 scripts/test-video-renderer.py
+      - run: npm test -- src/lib/presentiq/delivery/project.test.ts
+        env:
+          PITCHORA_FIXTURE_DIR: /tmp/pitchora-media-smoke
+      - name: Render and probe real MP4 with synthetic audio
+        run: |
+          cp public/pitchora/render_video.py /tmp/pitchora-media-smoke/
+          cd /tmp/pitchora-media-smoke
+          ffmpeg -v error -f lavfi -i sine=frequency=440:duration=4 -ar 48000 synthetic-test-tone.wav
+          python3 render_video.py --audio synthetic-test-tone.wav
+          ffprobe -v error -show_streams -show_format -of json output.mp4
+      - run: npm run build
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-delivery-evidence
+          path: |
+            playwright-report
+            test-results
+            /tmp/pitchora-media-smoke/render-report.json
+            /tmp/pitchora-media-smoke/output.mp4
+          retention-days: 7

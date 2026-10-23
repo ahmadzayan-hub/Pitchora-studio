@@ -15,6 +15,20 @@ Next.js 15 · React 18 · TypeScript · Supabase · PPTX · English / العرب
 [Verification](#verify-changes) · [Release guide](docs/REPOSITORY_GUIDE.md) ·
 [العربية](#بالعربية)
 
+## Source Studio: local authoring without a model API
+
+![Decorative 3D slide-stack concept, not a product screenshot](public/pitchora/brand-3d.webp)
+
+Open `/presentiq/source-studio`: import a text PDF, TXT, Markdown or CSV; inspect
+page-linked excerpts; edit the storyboard; explicitly review each scene; export
+editable PPTX, standalone HTML/print-to-PDF, JSON backup and a local video render
+package. Sources are processed in the browser, not uploaded by this workflow.
+The package can render real MP4 with installed free desktop tools; the ZIP itself
+is not a video. [Capabilities, limits, licenses and acceptance](docs/SOURCE_STUDIO.md).
+
+This is a functional **local single-user** workflow, not hosted team persistence
+and not automatic LLM reasoning, translation or animated video generation.
+
 ## What it helps you do
 
 | Your task | Repository capability | Important boundary |
@@ -71,9 +85,10 @@ backend and review the [setup and release guide](docs/REPOSITORY_GUIDE.md).
   presentation migration or replay historical migrations over an unknown live
   database. Follow the [schema coexistence review](docs/schema-coexistence-release-review.md)
   and [tenant enrollment review](docs/tenant-enrollment-release-review.md).
-- Presentation generation currently resolves an Anthropic provider when its
-  server-side key is configured, otherwise a deterministic mock. The mock is
-  not real generation; provider spend and data-sharing approval are separate.
+- Presentation generation defaults to free deterministic source extraction, even
+  when a model key exists. Anthropic is optional only when explicitly selected
+  by an approved caller; mock is test-only explicit selection. Provider spend
+  and source-sharing approval remain separate.
 - Configure storage and any optional billing integration only for the intended
   project. Missing payment configuration is not permission to use live payments
   for a smoke test.
