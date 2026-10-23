@@ -1,10 +1,10 @@
 name: Source delivery acceptance
 on:
   pull_request:
-    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', '.github/workflows/source-delivery.yml']
+    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', 'scripts/ci/**', 'scripts/test-ci-dependencies.py', '.github/workflows/source-delivery.yml']
   push:
     branches: [main]
-    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', '.github/workflows/source-delivery.yml']
+    paths: ['src/lib/presentiq/**', 'src/app/presentiq/**', 'public/pitchora/**', 'e2e/**', 'playwright.config.ts', 'package*.json', 'scripts/test-video-renderer.py', 'scripts/ci/**', 'scripts/test-ci-dependencies.py', '.github/workflows/source-delivery.yml']
 permissions:
   contents: read
 concurrency:
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   browser-and-media:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: '1'
@@ -24,8 +24,9 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
-      - run: sudo apt-get update && sudo apt-get install -y libreoffice-impress poppler-utils ffmpeg fonts-noto-core
+      - run: python3 scripts/test-ci-dependencies.py
+      - run: bash scripts/ci/install_system_dependencies.sh
+      - run: npx playwright install chromium
       - run: python3 scripts/test-video-renderer.py
       - run: npm test -- src/lib/presentiq/delivery/project.test.ts
         env:
