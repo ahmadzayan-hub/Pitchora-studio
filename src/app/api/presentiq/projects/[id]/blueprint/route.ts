@@ -86,25 +86,27 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     .eq("project_id", project.id)
     .limit(200);
 
-  await supabase.from("pq_presentation_projects").update({ status: "ingesting" }).eq("id", project.id);
+
 
   const provider = resolveProvider({
     apiKey: process.env.ANTHROPIC_API_KEY,
     confidentiality: project.confidentiality_level,
   });
-  const orch = buildOrchestrator({ provider, orgId: ctx.orgId });
+  const orch = buildOrchestrator({ provider, orgId: ctx.orgId, signal: req.signal });
 
   let blueprint;
   try {
     blueprint = await orch.runBlueprint({ brief: briefParse.data, evidence: (evidence ?? []) as any, ctx: brandCtx });
   } catch (e) {
-    return fail("generation_failed", (e as Error).message, 500);
+    return fail("generation_failed", "Generation stopped. Check sources and provider availability; no completed output was accepted.", 422);
   }
 
-  await supabase
+  const { error: saveError } = await supabase
     .from("pq_presentation_projects")
     .update({ status: "blueprint_ready", blueprint })
     .eq("id", project.id);
+
+  if (saveError) return fail("storage_failed", "Blueprint could not be saved", 503);
 
   await writeAudit(supabase, {
     organization_id: ctx.orgId, user_id: ctx.userId, action: "project.blueprint",

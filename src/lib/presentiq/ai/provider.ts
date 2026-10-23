@@ -17,6 +17,7 @@ export type CompletionRequest = {
   temperature?: number;
   maxTokens?: number;
   metadata?: Record<string, unknown>;
+  signal?: AbortSignal;
 };
 
 export type CompletionResult = {
@@ -134,6 +135,7 @@ export class AnthropicProvider implements ModelProvider {
 
     const res = await fetch(url, {
       method: "POST",
+      signal: req.signal ? AbortSignal.any([req.signal, AbortSignal.timeout(45_000)]) : AbortSignal.timeout(45_000),
       headers: {
         "x-api-key": this.apiKey,
         "anthropic-version": "2023-06-01",
@@ -143,8 +145,7 @@ export class AnthropicProvider implements ModelProvider {
     });
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`anthropic_error_${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`provider_request_failed_${res.status}`);
     }
     const data = (await res.json()) as {
       content: { type: string; text?: string }[];
@@ -171,19 +172,28 @@ export class AnthropicProvider implements ModelProvider {
 // ---------------------------------------------------------------------
 
 export type ProviderResolverOptions = {
-  preferred?: "anthropic" | "mock";
+  preferred?: "anthropic" | "mock" | "extractive";
   apiKey?: string;
   allowed?: string[]; // organisation-allowed providers
   confidentiality?: ConfidentialityLevel;
 };
 
 export function resolveProvider(opts: ProviderResolverOptions = {}): ModelProvider {
-  const preferred = opts.preferred ?? (opts.apiKey ? "anthropic" : "mock");
-  const allowed = opts.allowed ?? ["anthropic", "mock"];
+  const preferred = opts.preferred ?? "extractive";
+  const allowed = opts.allowed ?? ["anthropic", "extractive"];
 
   if (preferred === "anthropic" && allowed.includes("anthropic") && opts.apiKey) {
     return new AnthropicProvider({ apiKey: opts.apiKey });
   }
-  if (allowed.includes("mock")) return new MockProvider();
+  if (preferred === "mock" && allowed.includes("mock")) return new MockProvider();
+  if (preferred === "extractive" && allowed.includes("extractive")) return new ExtractiveProvider();
   throw new Error("provider_disallowed");
+}
+
+/** Marker for the free source-copying path. Never synthesizes model responses. */
+export class ExtractiveProvider implements ModelProvider {
+  name = "extractive";
+  enterpriseSafe = true;
+  async complete(_req: CompletionRequest): Promise<CompletionResult> { throw new Error("extractive_action_unsupported"); }
+  async embed(_text: string): Promise<EmbedResult> { throw new Error("embedding_provider_required"); }
 }
