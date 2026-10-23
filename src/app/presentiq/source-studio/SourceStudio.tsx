@@ -76,7 +76,7 @@ export function SourceStudio() {
     const parsed = DeliveryProjectSchema.parse(JSON.parse(raw)); setError(""); setTrace([]); changed(parsed); setTitle(parsed.title); setSources(parsed.sources.filter(s => s.id !== "pasted")); setText(parsed.sources.find(s => s.id === "pasted")?.text ?? "");
   }
   const button = "pq-btn pq-btn-liquid disabled:opacity-50";
-  return <div className="mx-auto max-w-7xl space-y-6 py-6">
+  return <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 py-6">
     <header className="relative overflow-hidden rounded-3xl border border-indigo-400/30 bg-indigo-500/10 p-6 sm:p-10">
       <Image src="/pitchora/brand-3d.webp" alt="" width={240} height={240} className="hidden xl:block float-right ms-6" />
       <p className="text-sm uppercase tracking-widest text-indigo-300">Pitchora · Source Studio</p>
@@ -86,20 +86,20 @@ export function SourceStudio() {
     </header>
     {error && <p role="alert" className="rounded-xl border border-red-400 p-4">{error}</p>}
     {notice && <p role="status" className="rounded-xl border border-indigo-300 p-4">{notice}</p>}
-    <div className="grid gap-6 lg:grid-cols-[minmax(280px,1fr)_2fr]">
-      <section className="rounded-2xl border border-indigo-400/30 p-5 space-y-4" aria-label="Source intake">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(280px,1fr)_2fr]">
+      <section className="min-w-0 rounded-2xl border border-indigo-400/30 p-5 space-y-4" aria-label="Source intake">
         <h2 className="text-xl font-semibold">{message("1. Brief & sources", "١. الهدف والمصادر")}</h2>
         <label className="block">{message("Presentation title", "عنوان العرض")}<input className="pq-input w-full mt-1" value={title} maxLength={200} disabled={busy} onChange={e => { setTitle(e.target.value); setProject(null); }} /></label>
         <label className="block">{message("Paste your source text", "أضف نص المصدر")}<textarea className="pq-input w-full min-h-48 mt-1" value={text} maxLength={100000} disabled={busy} onChange={e => { setText(e.target.value); setProject(null); }} /></label>
-        <label className="block text-sm">{message("Add PDF, TXT, MD or CSV sources", "إضافة مصادر PDF أو TXT أو MD أو CSV")}<input type="file" multiple accept=".pdf,.txt,.md,.csv" disabled={busy} onChange={e => void addFiles(e.target.files)} /></label>
+        <label className="block text-sm">{message("Add PDF, TXT, MD or CSV sources", "إضافة مصادر PDF أو TXT أو MD أو CSV")}<input className="block w-full min-w-0 max-w-full" type="file" multiple accept=".pdf,.txt,.md,.csv" disabled={busy} onChange={e => void addFiles(e.target.files)} /></label>
         <p className="text-xs opacity-80">{message("CSV remains source text; charts and computed statistics are not invented. Up to 10 sources, 200,000 total characters; first 12 passages form the editable draft.", "CSV يُحفظ كنص مصدر دون اختراع رسوم أو حسابات. حتى ١٠ مصادر و٢٠٠ ألف حرف؛ أول ١٢ مقطعًا تشكّل المسودة القابلة للتعديل.")}</p>
-        <ul>{sources.map(s => <li key={s.id} className="flex justify-between gap-2 text-sm">{s.name}<button disabled={busy} onClick={() => { setSources(old => old.filter(x => x.id !== s.id)); setProject(null); }}>{message("Remove", "إزالة")}</button></li>)}</ul>
+        <ul>{sources.map(s => <li key={s.id} className="flex justify-between gap-2 text-sm break-all">{s.name}<button disabled={busy} onClick={() => { setSources(old => old.filter(x => x.id !== s.id)); setProject(null); }}>{message("Remove", "إزالة")}</button></li>)}</ul>
         <button className={button} disabled={busy || title.trim().length < 2 || (!text.trim() && !sources.length)} onClick={() => void build()}>{message("Compose source-led draft", "بناء مسودة من المصادر")}</button>
         {composing && <button className={button} onClick={() => { run.current++; setBusy(false); setComposing(false); setTrace([]); }}>{message("Cancel composition", "إلغاء البناء")}</button>}
         <ol aria-live="polite" className="space-y-2 text-sm">{trace.map(t => <li key={t}>{t}</li>)}</ol>
         <hr className="opacity-20" />
         <button className={button} disabled={busy} onClick={() => { try { const raw = localStorage.getItem(KEY); if (!raw) throw new Error("No local saved project"); restore(raw); } catch { setError(message("No valid local project could be restored.", "تعذّر استرجاع مشروع محلي صالح.")); } }}>{message("Restore local save", "استرجاع الحفظ المحلي")}</button>
-        <label className="block text-sm">{message("Restore project JSON", "استرجاع ملف المشروع JSON")}<input type="file" accept=".json" disabled={busy} onChange={async e => {
+        <label className="block text-sm">{message("Restore project JSON", "استرجاع ملف المشروع JSON")}<input className="block w-full min-w-0 max-w-full" type="file" accept=".json" disabled={busy} onChange={async e => {
           const file = e.target.files?.[0]; if (!file || busy) return;
           const id = ++run.current; setBusy(true); setError("");
           try { if (file.size > 2_000_000) throw new Error(); const raw = await file.text(); if (id === run.current) restore(raw); }
@@ -107,7 +107,7 @@ export function SourceStudio() {
           finally { if (id === run.current) setBusy(false); }
         }} /></label>
       </section>
-      <section className="space-y-4" aria-label="Storyboard review">
+      <section className="min-w-0 space-y-4" aria-label="Storyboard review">
         <h2 className="text-xl font-semibold">{message("2. Storyboard & human review", "٢. المشاهد والمراجعة البشرية")}</h2>
         {!project && <div className="rounded-2xl border border-dashed border-indigo-400/40 p-12 text-center">{message("Your real content will appear here, with its source beside every scene.", "هنا يظهر محتواك الفعلي، مع مصدر كل مشهد.")}</div>}
         {project?.scenes.map((scene, i) => {
@@ -124,7 +124,7 @@ export function SourceStudio() {
         })}
       </section>
     </div>
-    {project && <section className="rounded-2xl border border-indigo-300/40 p-6 space-y-4">
+    {project && <section className="min-w-0 rounded-2xl border border-indigo-300/40 p-6 space-y-4">
       <h2 className="text-xl font-semibold">{message("3. Save & deliver", "٣. الحفظ والتسليم")}</h2>
       <p>{message("Editable PPTX · standalone HTML with browser PDF printing · editable JSON · local MP4 rendering package. No automatic narration, music or word alignment.", "PPTX قابل للتعديل · HTML مستقل مع الطباعة إلى PDF · JSON قابل للتحرير · حزمة تصدير MP4 محليًا. دون ادعاء توليد تعليق صوتي أو موسيقى أو مزامنة كلمات.")}</p>
       <p role="status">{issues.length ? `${issues.length} ${message("review items remain", "بنود مراجعة متبقية")}` : message("Checks passed; author review recorded, not independent certification.", "اجتازت الفحوص وسُجّلت مراجعتك، وليست شهادة اعتماد مستقلة.")}</p>

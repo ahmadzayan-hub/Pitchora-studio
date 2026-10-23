@@ -281,11 +281,11 @@ export function Hero() {
           <ul className="pq-hero-trust pq-rise pq-rise-5" aria-label={lang === "ar" ? "شهادات الثقة" : "Trust marks"}>
             <li>
               <ShieldCheck aria-hidden size={13} strokeWidth={2.2} />
-              <span>{lang === "ar" ? "عمليّة ISO-9001" : "ISO-9001 process"}</span>
+              <span>{lang === "ar" ? "مراجعة المصادر" : "Source review"}</span>
             </li>
             <li>
               <BadgeCheck aria-hidden size={13} strokeWidth={2.2} />
-              <span>{lang === "ar" ? "استضافة داخل الإمارات" : "UAE data residency"}</span>
+              <span>{lang === "ar" ? "تحرير محلي اختياري" : "Local authoring option"}</span>
             </li>
             <li>
               <Languages aria-hidden size={13} strokeWidth={2.2} />
@@ -293,7 +293,7 @@ export function Hero() {
             </li>
             <li>
               <Gauge aria-hidden size={13} strokeWidth={2.2} />
-              <span>{lang === "ar" ? "WCAG-AA" : "WCAG-AA accessible"}</span>
+              <span>{lang === "ar" ? "تصدير قابل للتحرير" : "Editable exports"}</span>
             </li>
           </ul>
         </div>
@@ -407,8 +407,7 @@ export function Hero() {
 
       {/* Removed: "Built for" trust marquee — the labels were audience
           categories, not real customer logos, so they added visual
-          weight without adding trust. Real trust signals (ISO-9001,
-          UAE data residency, WCAG-AA) live in the hero chip row and
+          weight without adding trust. Verified capability labels live in the hero chip row and
           the footer. */}
 
       {/* ── Differentiator features ───────────────────────────────── */}

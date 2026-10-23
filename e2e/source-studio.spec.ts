@@ -47,5 +47,34 @@ test("browser PDF worker retains actual page attribution", async ({ page }) => {
   await page.getByRole("button", { name: "Compose source-led draft", exact: true }).click();
   await expect(page.getByLabel("Visible content").nth(1)).toHaveValue("Second page actual AED 950.");
   await expect(page.getByText(/two-pages.pdf · p.2/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: test.info().outputPath("source-studio-pdf.png"), fullPage: true });
+});
+
+test("cancelled composition does not resurrect a draft", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = window.setTimeout.bind(window);
+    window.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => original(handler, timeout === 0 ? 150 : timeout, ...args)) as typeof window.setTimeout;
+  });
+  await page.goto("/presentiq/source-studio");
+  await page.getByLabel("Presentation title", { exact: true }).fill("Cancel review");
+  await page.getByLabel("Paste your source text", { exact: true }).fill("Supplied source passage for cancellation.");
+  await page.getByRole("button", { name: "Compose source-led draft", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel composition", exact: true }).click();
+  await page.waitForTimeout(400);
+  await expect(page.getByLabel("Visible content")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Compose source-led draft", exact: true })).toBeEnabled();
+});
+
+test("Arabic source remains editable and mobile-safe", async ({ page }) => {
+  await page.goto("/presentiq/source-studio");
+  await page.getByRole("button", { name: /العربية/ }).click();
+  await page.getByLabel("عنوان العرض", { exact: true }).fill("مراجعة المصادر");
+  await page.getByLabel("أضف نص المصدر", { exact: true }).fill("تكلفة المشروع ١٢٠٠ درهم. المبلغ المتبقي ٣٠٠ درهم.");
+  await page.getByRole("button", { name: "بناء مسودة من المصادر", exact: true }).click();
+  await expect(page.getByLabel("المحتوى المرئي").first()).toHaveValue("تكلفة المشروع ١٢٠٠ درهم.");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: test.info().outputPath("source-studio-arabic.png"), fullPage: true });
 });
