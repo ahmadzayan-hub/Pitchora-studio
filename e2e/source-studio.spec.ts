@@ -26,7 +26,7 @@ test("real sources → review → PPTX / HTML → saved-project recovery", async
   await checks.first().check();
   await expect(page.getByRole("button", { name: "PPTX", exact: true })).toBeDisabled();
   expect(postedSources).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
 test("invalid project restore preserves current draft and source text is not executed", async ({ page }) => {
   await page.goto("/presentiq/source-studio");
@@ -47,7 +47,7 @@ test("browser PDF worker retains actual page attribution", async ({ page }) => {
   await page.getByRole("button", { name: "Compose source-led draft", exact: true }).click();
   await expect(page.getByLabel("Visible content").nth(1)).toHaveValue("Second page actual AED 950.");
   await expect(page.getByText(/two-pages.pdf · p.2/)).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: test.info().outputPath("source-studio-pdf.png"), fullPage: true });
 });
@@ -74,7 +74,7 @@ test("Arabic source remains editable and mobile-safe", async ({ page }) => {
   await page.getByLabel("أضف نص المصدر", { exact: true }).fill("تكلفة المشروع ١٢٠٠ درهم. المبلغ المتبقي ٣٠٠ درهم.");
   await page.getByRole("button", { name: "بناء مسودة من المصادر", exact: true }).click();
   await expect(page.getByLabel("المحتوى المرئي").first()).toHaveValue("تكلفة المشروع ١٢٠٠ درهم.");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: test.info().outputPath("source-studio-arabic.png"), fullPage: true });
 });

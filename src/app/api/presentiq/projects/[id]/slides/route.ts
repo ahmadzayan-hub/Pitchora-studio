@@ -1,3 +1,4 @@
+import { publicGenerationFailure } from "@/lib/presentiq/ai/errors";
 import {
   buildOrchestrator,
   getRequestContext,
@@ -93,6 +94,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
   const provider = resolveProvider({
     apiKey: process.env.ANTHROPIC_API_KEY,
+    model: process.env.ANTHROPIC_MODEL,
     confidentiality: project.confidentiality_level,
   });
   const orch = buildOrchestrator({ provider, orgId: ctx.orgId, signal: req.signal });
@@ -109,7 +111,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     slides = result.slides;
     quality = result.quality;
   } catch (e) {
-    return fail("generation_failed", "Generation stopped. Check sources and provider availability; no completed output was accepted.", 422);
+    const failure = publicGenerationFailure(e);
+    return fail(failure.code, failure.message, failure.status);
   }
 
   const { data: lastVersion } = await supabase

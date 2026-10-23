@@ -15,7 +15,7 @@ Next.js 15 · React 18 · TypeScript · Supabase · PPTX · English / العرب
 [Verification](#verify-changes) · [Release guide](docs/REPOSITORY_GUIDE.md) ·
 [العربية](#بالعربية)
 
-## Source Studio: useful without a paid model
+## Source Studio: local authoring without a model API
 
 ![Decorative 3D slide-stack concept, not a product screenshot](public/pitchora/brand-3d.webp)
 

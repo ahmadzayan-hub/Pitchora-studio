@@ -8,6 +8,7 @@
  *   - cache outputs by canonical input hash.
  */
 
+import { ProviderFailure } from "./errors";
 import type { ConfidentialityLevel } from "../types";
 
 export type CompletionRequest = {
@@ -115,25 +116,27 @@ export class AnthropicProvider implements ModelProvider {
   enterpriseSafe = true;
   private readonly apiKey: string;
   private readonly model: string;
-  private readonly embedFallback: ModelProvider;
+  private readonly embedFallback?: ModelProvider;
 
   constructor(opts: { apiKey: string; model?: string; embedFallback?: ModelProvider }) {
     this.apiKey = opts.apiKey;
     this.model = opts.model ?? "claude-sonnet-4-6";
-    this.embedFallback = opts.embedFallback ?? new MockProvider();
+    this.embedFallback = opts.embedFallback;
+    if (!/^[a-zA-Z0-9._-]{1,100}$/.test(this.model)) throw new ProviderFailure("model_unavailable");
   }
 
   async complete(req: CompletionRequest): Promise<CompletionResult> {
+    if (req.signal?.aborted) throw new ProviderFailure("generation_cancelled");
     const url = "https://api.anthropic.com/v1/messages";
     const body = {
       model: this.model,
       max_tokens: req.maxTokens ?? 4096,
-      temperature: req.temperature ?? 0.4,
       system: req.systemPrompt,
       messages: [{ role: "user", content: req.userPrompt }],
     };
 
-    const res = await fetch(url, {
+    let res: Response;
+    try { res = await fetch(url, {
       method: "POST",
       signal: req.signal ? AbortSignal.any([req.signal, AbortSignal.timeout(45_000)]) : AbortSignal.timeout(45_000),
       headers: {
@@ -142,16 +145,31 @@ export class AnthropicProvider implements ModelProvider {
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      throw new Error(`provider_request_failed_${res.status}`);
+    }); } catch (error) {
+      if (req.signal?.aborted) throw new ProviderFailure("generation_cancelled");
+      if (error instanceof Error && error.name === "TimeoutError") throw new ProviderFailure("provider_timeout");
+      throw new ProviderFailure("provider_unavailable");
     }
-    const data = (await res.json()) as {
+
+    if (req.signal?.aborted) throw new ProviderFailure("generation_cancelled");
+    if (!res.ok) {
+      const retry = Number(res.headers.get("retry-after"));
+      if (res.status === 429) throw new ProviderFailure("provider_rate_or_quota_limit", Number.isFinite(retry) && retry > 0 ? Math.min(retry, 86400) : undefined);
+      if (res.status === 404) throw new ProviderFailure("model_unavailable");
+      if (res.status === 401) throw new ProviderFailure("provider_authentication");
+      if (res.status === 403) throw new ProviderFailure("provider_permission");
+      if (res.status === 402) throw new ProviderFailure("provider_budget_limit");
+      if (res.status === 504 || res.status === 408) throw new ProviderFailure("provider_timeout");
+      if (res.status >= 500) throw new ProviderFailure("provider_unavailable");
+      throw new ProviderFailure("provider_request_invalid");
+    }
+    const data = (await res.json().catch(() => { throw new ProviderFailure("provider_invalid_response"); })) as {
       content: { type: string; text?: string }[];
       usage?: { input_tokens: number; output_tokens: number };
     };
-    const text = data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
+    if (!Array.isArray(data.content)) throw new ProviderFailure("provider_invalid_response");
+    const text = data.content.filter((c) => c && c.type === "text" && typeof c.text === "string").map((c) => c.text ?? "").join("\n");
+    if (!text.trim()) throw new ProviderFailure("provider_invalid_response");
     return {
       text,
       usage: data.usage,
@@ -162,7 +180,8 @@ export class AnthropicProvider implements ModelProvider {
 
   async embed(text: string): Promise<EmbedResult> {
     // Anthropic does not currently expose a public embeddings endpoint of its own.
-    // We fall back to the configured embedding provider (default: mock).
+    // Only an explicitly supplied, separately approved embedding provider may run.
+    if (!this.embedFallback) throw new Error("embedding_provider_required");
     return this.embedFallback.embed(text);
   }
 }
@@ -174,6 +193,7 @@ export class AnthropicProvider implements ModelProvider {
 export type ProviderResolverOptions = {
   preferred?: "anthropic" | "mock" | "extractive";
   apiKey?: string;
+  model?: string;
   allowed?: string[]; // organisation-allowed providers
   confidentiality?: ConfidentialityLevel;
 };
@@ -183,7 +203,7 @@ export function resolveProvider(opts: ProviderResolverOptions = {}): ModelProvid
   const allowed = opts.allowed ?? ["anthropic", "extractive"];
 
   if (preferred === "anthropic" && allowed.includes("anthropic") && opts.apiKey) {
-    return new AnthropicProvider({ apiKey: opts.apiKey });
+    return new AnthropicProvider({ apiKey: opts.apiKey, model: opts.model });
   }
   if (preferred === "mock" && allowed.includes("mock")) return new MockProvider();
   if (preferred === "extractive" && allowed.includes("extractive")) return new ExtractiveProvider();
