@@ -7,8 +7,8 @@ const CreateSchema = z.object({
   name: z.string().min(2).max(120),
   is_default: z.boolean().optional(),
   preset: z.enum(["corporate", "government", "consulting", "uae_pine"]).optional(),
-  colors: z.record(z.string()).optional(),
-  fonts: z.record(z.string()).optional(),
+  colors: z.record(z.string(), z.string()).optional(),
+  fonts: z.record(z.string(), z.string()).optional(),
 });
 
 export async function GET() {

@@ -13,6 +13,7 @@ const Body = z.object({
       })
     )
     .min(1)
+    .max(100)
 });
 
 export const POST = safeRoute(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {

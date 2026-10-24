@@ -17,6 +17,7 @@ const Body = z.object({
         answer: z.string()
       })
     )
+    .max(100)
     .optional(),
   // when true → return clarification questions instead of a final prompt
   ask_first: z.boolean().optional()
