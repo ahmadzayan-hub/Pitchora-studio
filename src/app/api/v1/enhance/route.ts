@@ -26,6 +26,7 @@ const Body = z.object({
   target_model: z.enum(["chatgpt", "claude", "copilot", "gemini", "generic"]).optional(),
   qa: z
     .array(z.object({ question: z.string(), answer: z.string() }))
+    .max(100)
     .optional(),
   ask_first: z.boolean().optional()
 });

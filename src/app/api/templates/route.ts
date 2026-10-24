@@ -9,7 +9,7 @@ const Body = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(2000).optional(),
   category: z.string().max(60).optional(),
-  body: z.unknown(),
+  body: z.unknown().optional(),
   is_public: z.boolean().optional()
 });
 
