@@ -1,0 +1,27 @@
+[
+  {
+    "name": "review-animations",
+    "repository": "https://github.com/emilkowalski/skills",
+    "commit": "2d228630ba1446365f614a108cb8252f1feda202",
+    "upstream_path": "skills/review-animations",
+    "license": "MIT",
+    "copied_files_sha256": {
+      "STANDARDS.md": "e7d3605034acda54ca13e43aec9e64d65b53de20f75b11b8d694e373012fbe07",
+      "UPSTREAM-SKILL.md": "6ff590d29e436766135aa3d137be1fac2a867165c7257fc315b189361f1873af",
+      "LICENSE": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+    },
+    "entry_point": "project-scoped adapter"
+  },
+  {
+    "name": "emil-design-eng",
+    "repository": "https://github.com/emilkowalski/skills",
+    "commit": "2d228630ba1446365f614a108cb8252f1feda202",
+    "upstream_path": "skills/emil-design-eng",
+    "license": "MIT",
+    "copied_files_sha256": {
+      "UPSTREAM-SKILL.md": "ffbe68e6007fb42cb8149f089b400a1ca007d59ba23e8948e2be4476f3175939",
+      "LICENSE": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+    },
+    "entry_point": "project-scoped adapter"
+  }
+]
