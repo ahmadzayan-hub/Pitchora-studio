@@ -15,13 +15,22 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   return json({ items: data ?? [] });
 }
 
-export async function POST(req: Request, _props: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const ctx = await getRequestContext();
   if (!ctx) return unauthorized();
   const body = (await req.json().catch(() => ({}))) as { slide_id?: string; body?: string };
   if (!body.slide_id || !body.body) return fail("invalid_input", "slide_id and body required", 400);
   if (isDemoContext(ctx)) return fail("demo_readonly", "Demo mode does not persist comments.", 400);
   const supabase = await getSupabase();
+  const { data: slide } = await supabase
+    .from("pq_slides")
+    .select("id")
+    .eq("id", body.slide_id)
+    .eq("organization_id", ctx.orgId)
+    .eq("project_id", params.id)
+    .maybeSingle();
+  if (!slide) return fail("not_found", "Slide not found in this project.", 404);
   const { data, error } = await supabase
     .from("pq_comments")
     .insert({
