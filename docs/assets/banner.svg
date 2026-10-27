@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">Pitchora</title>
+  <desc id="desc">Pitchora banner: turn source material into a presentation you can explain, edit and review.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0E2A"/>
+      <stop offset="1" stop-color="#1E2654"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="0.55" stop-color="#8A6CF7"/>
+      <stop offset="1" stop-color="#E94B9F"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E2654"/>
+      <stop offset="1" stop-color="#161D44"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="#6366F1" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="400" fill="url(#bg)"/>
+  <rect width="1280" height="400" fill="url(#glow)"/>
+
+  <!-- Subtle dot grid -->
+  <g fill="#C9D5F8" fill-opacity="0.08">
+    <circle cx="660" cy="60" r="2"/><circle cx="700" cy="60" r="2"/><circle cx="740" cy="60" r="2"/>
+    <circle cx="660" cy="100" r="2"/><circle cx="700" cy="100" r="2"/><circle cx="740" cy="100" r="2"/>
+    <circle cx="660" cy="300" r="2"/><circle cx="700" cy="300" r="2"/><circle cx="740" cy="300" r="2"/>
+    <circle cx="660" cy="340" r="2"/><circle cx="700" cy="340" r="2"/><circle cx="740" cy="340" r="2"/>
+  </g>
+
+  <!-- Slide stack: source to storyboard to slide -->
+  <g transform="translate(820 70)">
+    <rect x="60" y="0" width="320" height="200" rx="18" fill="url(#card)" stroke="#8A6CF7" stroke-opacity="0.35" transform="rotate(6 220 100)"/>
+    <rect x="30" y="20" width="320" height="200" rx="18" fill="url(#card)" stroke="#4DC9E6" stroke-opacity="0.35" transform="rotate(2 190 120)"/>
+    <g transform="translate(0 50)">
+      <rect width="320" height="200" rx="18" fill="#161D44" stroke="#6366F1" stroke-width="2"/>
+      <rect x="24" y="24" width="150" height="14" rx="7" fill="#F2F4FF" fill-opacity="0.9"/>
+      <rect x="24" y="50" width="220" height="8" rx="4" fill="#C9D5F8" fill-opacity="0.45"/>
+      <rect x="24" y="66" width="190" height="8" rx="4" fill="#C9D5F8" fill-opacity="0.45"/>
+      <rect x="24" y="150" width="34" height="26" rx="4" fill="#6366F1"/>
+      <rect x="66" y="128" width="34" height="48" rx="4" fill="#8A6CF7"/>
+      <rect x="108" y="110" width="34" height="66" rx="4" fill="#4DC9E6"/>
+      <rect x="150" y="96" width="34" height="80" rx="4" fill="#E94B9F"/>
+      <circle cx="262" cy="136" r="34" fill="none" stroke="#6366F1" stroke-width="10" stroke-opacity="0.3"/>
+      <path d="M262 102 A34 34 0 1 1 230 148" fill="none" stroke="#4DC9E6" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Wordmark and value statement -->
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="80" y="104" width="56" height="56" rx="14" fill="url(#accent)"/>
+    <path d="M96 146 L120 118 M110 118 H120 V128" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="156" y="148" font-size="52" font-weight="700" fill="#F2F4FF">Pitchora</text>
+    <rect x="82" y="182" width="120" height="4" rx="2" fill="url(#accent)"/>
+    <text x="80" y="230" font-size="26" font-weight="500" fill="#F2F4FF">Turn source material into a presentation</text>
+    <text x="80" y="264" font-size="26" font-weight="500" fill="#F2F4FF">you can explain, edit and review.</text>
+    <text x="80" y="316" font-size="16" fill="#C9D5F8" fill-opacity="0.85">Storyboard · Brand kits · English / Arabic · Editable PPTX</text>
+  </g>
+  <text x="1200" y="370" font-family="'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif" font-size="20" fill="#C9D5F8" fill-opacity="0.7" direction="rtl" text-anchor="start" xml:lang="ar">بِتشورا</text>
+</svg>
