@@ -25,7 +25,6 @@ export default function PresentIqError({
   useEffect(() => {
     // Log to the browser console so devs see it during local runs.
     // Vercel + real telemetry pick this up server-side via the digest.
-    // eslint-disable-next-line no-console
     console.error("[presentiq] segment error", error);
   }, [error]);
 

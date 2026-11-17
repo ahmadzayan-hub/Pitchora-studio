@@ -101,6 +101,8 @@ export default function PromptTrends({ locale = "en" }: PromptTrendsProps) {
         "po_starter",
         JSON.stringify({ text: trend.prompt, model: "chatgpt" as TargetModel })
       );
+      // Intentional full navigation: the starter text is handed over via sessionStorage.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/workspace";
     }
   }
