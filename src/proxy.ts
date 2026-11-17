@@ -6,7 +6,7 @@ import { updateSession } from "../utils/supabase/middleware";
  * auth cookie before it expires so server components and API routes see a
  * valid user.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return updateSession(request);
 }
 

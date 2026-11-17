@@ -161,7 +161,6 @@ export default function VoiceInput({ onTranscript, onAutoSubmit, onTypeInstead, 
     return () => {
       stopAll();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function stopAll() {

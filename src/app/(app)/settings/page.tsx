@@ -62,6 +62,8 @@ export default function SettingsPage() {
   async function requestDeletion() {
     if (deleteConfirm !== "DELETE") return;
     await fetch("/api/account/delete", { method: "POST" });
+    // Intentional full navigation: the account is gone, so reload from a clean state.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/";
   }
 

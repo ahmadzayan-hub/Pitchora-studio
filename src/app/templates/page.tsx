@@ -52,6 +52,8 @@ export default function TemplatesPage() {
   function tryStarter(b: BuiltinTemplate) {
     const text = locale === "ar" ? b.starter_ar : b.starter_en;
     sessionStorage.setItem("po_starter", JSON.stringify({ text, model: b.target_model }));
+    // Intentional full navigation: the starter text is handed over via sessionStorage.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     location.href = "/workspace";
   }
 
